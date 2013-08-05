@@ -1,0 +1,22 @@
+{
+	"name": "WSChatServer",
+	"version": "0.1.0",
+	"scripts":{
+		"start": "node server.js"
+	},
+	"author": {
+		"name": "Sam Mulqueen",
+		"email": "sammulqueen.nz@gmail.com"
+	},
+	"bin": "./server.js",
+	"repository" :
+	{
+		"type" : "git",
+		"url" : "https://github.com/SamM/chatapp.git"
+	},
+	"dependencies": {
+		"socket.io": "0.9.*",
+		"redis": "0.7.*"
+	}
+
+}
