@@ -15,8 +15,8 @@
 		"url" : "https://github.com/SamM/chatapp.git"
 	},
 	"dependencies": {
-		"socket.io": "0.9.*",
-		"redis": "0.7.*"
+		"socket.io": ">=0.9.16",
+		"redis": ">=0.7.3"
 	}
 
 }
