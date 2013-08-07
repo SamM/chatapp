@@ -2,20 +2,31 @@ module.exports = function(env){
 	var io = env.io,
 		express = env.express,
 		app = env.app,
+		dao = env.dao,
 		handle = {};
 	
 	// Rails to Node
 	
 	handle.call_received = function(req, res){
+		var id = req.body.id,
+			token = req.body.token,
+			list = req.body.list;
 		
+		dao.outsider.create(token, id);
 	};
 	
 	handle.insider_logs_in = function(req, res){
-		
+		var id = req.params.id,
+			token = req.params.token;
+			
+		dao.insider.create(token, id);
 	};
 	
 	handle.insider_logs_out = function(req, res){
+		var id = req.params.id,
+			token = req.params.token;
 		
+		dao.insider.remove(token);
 	};
 	
 	handle.msg_by_out_logged = function(){};
@@ -43,7 +54,20 @@ module.exports = function(env){
 	// Outsider to Node
 	
 	handle.outsider_connect = function(socket, data){
+		var token = data.token,
+			id = data.id,
+			session = dao.outsider.getByToken(token);
 		
+		if(token === undefined || id === undefined){
+			handle.reject_out_connect(socket, token === undefined ? "missing token" : "missing id");
+		}else if(session === null){
+			handle.reject_out_connect(socket, "bad token");
+		}else if(session.id !== id){
+			handle.reject_out_connect(socket, "bad id");
+		}else{
+			// Connected successfully
+			handle.accept_out_connect(socket, session);
+		}
 	};
 	
 	handle.outsider_typing = function(){};
@@ -57,7 +81,20 @@ module.exports = function(env){
 	// Insider to Node
 	
 	handle.insider_connect = function(socket, data){
+		var token = data.token,
+			id = data.id,
+			session = dao.insider.getByToken(token);
 		
+		if(token === undefined || id === undefined){
+			handle.reject_in_connect(socket, token === undefined ? "missing token" : "missing id");
+		}else if(session === null){
+			handle.reject_in_connect(socket, "bad token");
+		}else if(session.id !== id){
+			handle.reject_in_connect(socket, "bad id");
+		}else{
+			// Connected successfully
+			handle.accept_in_connect(socket, session);
+		}
 	};
 	
 	handle.insider_typing = function(){};
@@ -72,9 +109,27 @@ module.exports = function(env){
 	
 	// Node to Outsider
 	
-	handle.accept_out_connect = function(){};
+	handle.accept_out_connect = function(socket, session){
+		socket.session = session;
+		// Setup socket events
+		socket.on("typing", function(data){
+			handle.outsider_typing(socket, data);
+		});
+		socket.on("read", function(data){
+			handle.outsider_read(socket, data);
+		});
+		socket.on("send", function(data){
+			handle.outsider_send_msg(socket, data);
+		});
+		socket.on("disconnect", function(data){
+			handle.outsider_disconnect(socket, data);
+		});
+		socket.emit("auth_success", {});
+	};
 	
-	handle.reject_out_connect = function(){};
+	handle.reject_out_connect = function(socket, error){
+		socket.emit("auth_error": { "error": error });
+	};
 	
 	handle.notify_out_of_in = function(){};
 	
@@ -86,9 +141,29 @@ module.exports = function(env){
 	
 	// Node to Insider
 	
-	handle.accept_in_connect = function(){};
+	handle.accept_in_connect = function(socket, session){
+		socket.session = session;
+		socket.on("typing", function(data){
+			handle.insider_typing(socket, data);
+		});
+		socket.on("read", function(data){
+			handle.insider_read(socket, data);
+		});
+		socket.on("send", function(data){
+			handle.insider_send_msg(socket, data);
+		});
+		socket.on("disconnect", function(data){
+			handle.insider_disconnect(socket, data);
+		});
+		socket.on("status", function(data){
+			handle.insider_status(socket, data);
+		});
+		socket.emit("auth_success", {});
+	};
 	
-	handle.reject_in_connect = function(){};
+	handle.reject_in_connect = function(socket, error){
+		socket.emit("auth_error": { "error": error });
+	};
 	
 	handle.call_insider = function(){};
 	

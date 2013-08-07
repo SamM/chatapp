@@ -16,9 +16,9 @@ module.exports = function(env){
 		
 	app.post("/incoming_call", handle.call_received);
 	
-	app.get("/operator/login", handle.insider_login);
+	app.get("/operator/login/:id/:token", handle.insider_login);
 	
-	app.get("/operator/logout", handle.insider_logout);
+	app.get("/operator/logout/:id/:token", handle.insider_logout);
 	
 	// Outsider Websocket Connections
 	
