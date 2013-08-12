@@ -1,7 +1,7 @@
 <html>
 
 <head>
-	<title>Test</title>
+	<title>Operator</title>
 	<script src="/socket.io/socket.io.js"></script>
 </head>
 
@@ -10,8 +10,8 @@
 
 <script>
   var auth = {
-  		"id": "bob",
-  		"token": "123"
+  		"id": "a",
+  		"token": "1"
 	},
 	socket = io.connect('http://localhost/operator'),
 	receive = {},
@@ -27,23 +27,23 @@
  		alert("Connected to server");
   	};
 
- 	receive.auth_error = function(data){
- 		alert("Error connecting to server: "+data.error);
+ 	receive.auth_error = function(error){
+ 		alert("Error connecting to server: "+error);
   	};
 
  	receive.call_request = function(data){
 
   	};
 
-  	receive.call_connect = function(data){
+  	receive.call_connected = function(data){
 
   	};
 
-  	receive.single_message = function(data){
+  	receive.self_message = function(data){
 
   	};
 
-  	receive.multiple_messages = function(data){
+  	receive.other_message = function(data){
 
   	};
 
@@ -57,28 +57,28 @@
 
   	// Send events
 
-  	send.accept_call = function(){
-
+  	send.accept_call = function(token){
+  		socket.emit("accept_call", token);
   	};
 
-  	send.decline_call = function(){
-
+  	send.decline_call = function(token){
+  		socket.emit("decline_call", token);
   	};
 
-  	send.read_message = function(){
-
+  	send.read_message = function(id){
+  		socket.emit("read_message", id);
   	};
 
   	send.start_typing = function(){
-
+  		socket.emit("typing", true);
   	};
 
   	send.stop_typing = function(){
-
+  		socket.emit("typing", false);
   	};
 
-  	send.new_message = function(){
-
+  	send.new_message = function(message){
+  		socket.emit("new_message", { "message": message });
   	};
 
 

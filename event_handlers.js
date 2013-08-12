@@ -131,7 +131,7 @@ module.exports = function(env){
 	};
 	
 	handle.reject_out_connect = function(socket, error){
-		socket.emit("auth_error", { "error": error });
+		socket.emit("auth_error", error);
 	};
 	
 	handle.notify_out_of_in = function(){};
@@ -165,7 +165,7 @@ module.exports = function(env){
 	};
 	
 	handle.reject_in_connect = function(socket, error){
-		socket.emit("auth_error", { "error": error });
+		socket.emit("auth_error", error);
 	};
 	
 	handle.call_insider = function(){};

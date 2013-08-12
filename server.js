@@ -21,4 +21,15 @@ env.dao = require("./dao.js");
 env.handle = require("./event_handlers")(env);
 env.routes = require("./routes")(env);
 
+// Dummy operators
+
+function createOperator(id, token){
+	env.dao.insider.create(token, id);
+}
+
+createOperator("a", "1");
+createOperator("b", "2");
+createOperator("c", "3");
+
+
 console.log("Server listening on port 8080 >> http://localhost:8080");
