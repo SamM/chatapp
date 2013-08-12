@@ -1,5 +1,4 @@
-var domain = require("./domain"),
-	dao = {};
+var dao = {};
 
 dao.insider = {};
 dao.outsider = {};

@@ -13,20 +13,23 @@ module.exports = function(env){
 			list = req.body.list;
 		
 		dao.outsider.create(token, id);
+		res.end("success");
 	};
 	
-	handle.insider_logs_in = function(req, res){
+	handle.insider_login = function(req, res){
 		var id = req.params.id,
 			token = req.params.token;
 			
 		dao.insider.create(token, id);
+		res.end("success");
 	};
 	
-	handle.insider_logs_out = function(req, res){
+	handle.insider_logout = function(req, res){
 		var id = req.params.id,
 			token = req.params.token;
 		
 		dao.insider.remove(token);
+		res.end("success");
 	};
 	
 	handle.msg_by_out_logged = function(){};
@@ -128,7 +131,7 @@ module.exports = function(env){
 	};
 	
 	handle.reject_out_connect = function(socket, error){
-		socket.emit("auth_error": { "error": error });
+		socket.emit("auth_error", { "error": error });
 	};
 	
 	handle.notify_out_of_in = function(){};
@@ -162,7 +165,7 @@ module.exports = function(env){
 	};
 	
 	handle.reject_in_connect = function(socket, error){
-		socket.emit("auth_error": { "error": error });
+		socket.emit("auth_error", { "error": error });
 	};
 	
 	handle.call_insider = function(){};

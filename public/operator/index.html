@@ -1,0 +1,91 @@
+<html>
+
+<head>
+	<title>Test</title>
+	<script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+
+
+<script>
+  var auth = {
+  		"id": "bob",
+  		"token": "123"
+	},
+	socket = io.connect('http://localhost/operator'),
+	receive = {},
+	send = {};
+
+	// Receive events
+
+	receive.ready = function (data) {
+    	socket.emit('auth', auth);
+  	};
+
+ 	receive.auth_success = function(data){
+ 		alert("Connected to server");
+  	};
+
+ 	receive.auth_error = function(data){
+ 		alert("Error connecting to server: "+data.error);
+  	};
+
+ 	receive.call_request = function(data){
+
+  	};
+
+  	receive.call_connect = function(data){
+
+  	};
+
+  	receive.single_message = function(data){
+
+  	};
+
+  	receive.multiple_messages = function(data){
+
+  	};
+
+  	receive.message_read = function(data){
+
+  	};
+
+  	receive.typing = function(data){
+
+  	};
+
+  	// Send events
+
+  	send.accept_call = function(){
+
+  	};
+
+  	send.decline_call = function(){
+
+  	};
+
+  	send.read_message = function(){
+
+  	};
+
+  	send.start_typing = function(){
+
+  	};
+
+  	send.stop_typing = function(){
+
+  	};
+
+  	send.new_message = function(){
+
+  	};
+
+
+  for(var i in receive){
+  	socket.on(i, receive[i]);
+  }
+
+</script>
+</body>
+</html>

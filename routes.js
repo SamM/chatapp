@@ -5,12 +5,9 @@ module.exports = function(env){
 		app = env.app,
 		handle = env.handle,
 		routes = {};
-		
+
 	// Outsider > Node API
-	
-	app.get('/', function (req, res) {
-	  res.sendfile(__dirname + '/index.html');
-	});
+
 	
 	// Rails > Node API
 		
@@ -22,19 +19,19 @@ module.exports = function(env){
 	
 	// Outsider Websocket Connections
 	
-	io.sockets.of('/caller').on('connection', function (socket) {
-		socket.emit('hello', {  });
+	io.of('/caller').on('connection', function (socket) {
+		socket.emit('ready', {  });
 		socket.on('auth', function(data){
-			handler.outsider_connect(socket, data);
+			handle.outsider_connect(socket, data);
 		});
 	});
 	
 	// Insider Websocket Connections
 	
-	io.sockets.of('/operator').on('connection', function (socket) {
-		socket.emit('hello', {  });
+	io.of('/operator').on('connection', function (socket) {
+		socket.emit('ready', {  });
 		socket.on('auth', function(data){
-			handler.insider_connect(socket, data);
+			handle.insider_connect(socket, data);
 		});
 	});
 	
