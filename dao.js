@@ -60,7 +60,7 @@ dao.outsider.getByToken = function(token){
 		return null;
 	}
 	var found = outsiders[token];
-	return found === undefined ? null : fou
+	return found === undefined ? null : found;
 };
 dao.outsider.getById = function(id){
 	var found = [];

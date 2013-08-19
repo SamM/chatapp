@@ -77,7 +77,10 @@ module.exports = function(env){
 	
 	handle.outsider_read = function(){};
 	
-	handle.outsider_send_msg = function(){};
+	handle.outsider_send_msg = function(socket, data){
+		var message = data.message;
+		socket.emit("self_message", data);
+	};
 	
 	handle.outsider_disconnect = function(){};
 	
@@ -121,7 +124,7 @@ module.exports = function(env){
 		socket.on("read", function(data){
 			handle.outsider_read(socket, data);
 		});
-		socket.on("send", function(data){
+		socket.on("new_message", function(data){
 			handle.outsider_send_msg(socket, data);
 		});
 		socket.on("disconnect", function(data){

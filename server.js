@@ -30,6 +30,14 @@ function createOperator(id, token){
 createOperator("a", "1");
 createOperator("b", "2");
 createOperator("c", "3");
+createOperator("operator", "123");
 
+// Dummy chatters
+
+function createChatter(id, token){
+	env.dao.outsider.create(token, id);
+}
+
+createChatter("chatter", "123");
 
 console.log("Server listening on port 8080 >> http://localhost:8080");

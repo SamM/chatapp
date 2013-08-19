@@ -19,7 +19,7 @@ module.exports = function(env){
 	
 	// Outsider Websocket Connections
 	
-	io.of('/caller').on('connection', function (socket) {
+	io.of('/chatter').on('connection', function (socket) {
 		socket.emit('ready', {  });
 		socket.on('auth', function(data){
 			handle.outsider_connect(socket, data);

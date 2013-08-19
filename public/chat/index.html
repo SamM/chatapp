@@ -3,85 +3,25 @@
 <head>
 	<title>Chatter</title>
 	<script src="/socket.io/socket.io.js"></script>
+  <script src="/js/jquery-1.10.2.min.js"></script>
+  <script src="chat.js"></script>
+  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
-
-
-<script>
-  var auth = {
-  		"id": "chatter",
-  		"token": "123"
-	},
-	socket = io.connect('http://localhost/caller'),
-	receive = {},
-	send = {};
-
-	// Receive events
-
-	receive.ready = function (data) {
-    	socket.emit('auth', auth);
-  	};
-
- 	receive.auth_success = function(data){
- 		alert("Connected to server");
-  	};
-
- 	receive.auth_error = function(error){
- 		alert("Error connecting to server: "+error);
-  	};
-
- 	receive.call_connected = function(data){
-
-  	};
-
-  	receive.self_message = function(data){
-
-  	};
-
-  	receive.other_message = function(data){
-
-  	};
-
-  	receive.message_read = function(data){
-
-  	};
-
-  	receive.typing = function(data){
-
-  	};
-
-  	// Send events
-
-  	send.accept_call = function(token){
-  		socket.emit("accept_call", token);
-  	};
-
-  	send.decline_call = function(token){
-  		socket.emit("decline_call", token);
-  	};
-
-  	send.read_message = function(id){
-  		socket.emit("read_message", id);
-  	};
-
-  	send.start_typing = function(){
-  		socket.emit("typing", true);
-  	};
-
-  	send.stop_typing = function(){
-  		socket.emit("typing", false);
-  	};
-
-  	send.new_message = function(message){
-  		socket.emit("new_message", { "message": message });
-  	};
-
-
-  for(var i in receive){
-  	socket.on(i, receive[i]);
-  }
-
-</script>
+  <div id="header">
+    <h1>Chat Interface</h1>
+  </div>
+  <div id="content"></div>
+  <div id="chat">
+    <div id="scroll">
+      <div id="messages">
+      </div>
+    </div>
+    <form id="input">
+      <textarea id="message_input" name="message_input"></textarea>
+      <input type="submit" value="Send" name="send" id="send">
+    </form>
+  </div>
 </body>
 </html>
