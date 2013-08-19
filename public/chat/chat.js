@@ -9,18 +9,50 @@ var auth = {
 
   chat.connected = false;
   chat.reconnecting = false;
+  chat.typing_timeout = null;
+  chat.read_pending = false;
 
   chat.add_notice = function(text, className){
     className = className || "";
     var notice = $('<div class="notice '+className+'">'+text+'</div>');
     $("#messages").append(notice);
+    chat.scroll_messages();
     return notice;
   }
   chat.add_message = function(username, text, className){
     className = className || "";
     var message = $('<div class="message '+className+'"><span class="username">'+username+':</span>'+text+'</div>');
     $("#messages").append(message);
+    chat.scroll_messages();
     return message;
+  }
+
+  chat.start_typing = function(){
+    if(chat.typing_timeout){
+      clearTimeout(chat.typing_timeout);
+    }else{
+      send.start_typing();
+    }
+    chat.typing_timeout = setTimeout(chat.stop_typing, 1000);
+    $("#message_input").css("border-color", "red");
+  }
+
+  chat.stop_typing = function(){
+    clearTimeout(chat.typing_timeout);
+    send.stop_typing();
+    $("#message_input").css("border-color", "#777777");
+  }
+
+  chat.user_activity = function(){
+    if(chat.read_pending){
+      send.read_message();
+      chat.read_pending = false;
+    }
+    chat.scroll_messages();
+  }
+
+  chat.scroll_messages = function(){
+    $("#scroll").scrollTop($("#scroll")[0].scrollHeight);
   }
 
   // Receive events
@@ -43,7 +75,7 @@ var auth = {
     };
 
   receive.auth_error = function(error){
-    chat.add_notice("Error connecting to server: "+error);
+    chat.add_notice("Error connecting to server: "+error, 'error');
     };
 
   receive.call_request = function(data){
@@ -89,11 +121,25 @@ var auth = {
   };
 
   function inputSubmit(){
-    var message = $("#message_input")[0].value;
+    var message = $("#message_input").val();
     if(message.length){
       send.new_message(message);
     }
+    $("#message_input").val("").focus();
     return false;
+  }
+
+  function inputKeyPress(ev){
+    chat.user_activity();
+    if(ev.charCode == 13){ // Enter
+      if(!ev.shiftKey){ // Shift >> New Line
+        chat.stop_typing();
+        $("#input").submit();
+        ev.preventDefault();
+      }
+    }else{
+      chat.start_typing();
+    }
   }
 
   function setup(){
@@ -102,6 +148,11 @@ var auth = {
       socket.on(i, receive[i]);
     }
     $("#input").submit(inputSubmit);
+    $("#message_input")
+      .keypress(inputKeyPress)
+      .focus(chat.user_activity)
+      .blur(chat.user_activity);
+    $(window).focus(chat.user_activity);
   }
 
   $(document).ready(setup);

@@ -48,7 +48,7 @@ h1{
 	left: 7px;
 	right: 7px;
 	top: 7px;
-	bottom: 107px;
+	bottom: 100px;
 	border: 3px solid #777777;
 	border-radius: 5px;
 	overflow-y: scroll;
@@ -107,6 +107,10 @@ h1{
 	padding: 10px;
 	background-color: #EEEEEE;
 	font-style: italic;
+}
+.error {
+	background-color: #FFDDDD;
+	color: #BB0000;
 }
 .message{
 	padding: 5px;
