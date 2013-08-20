@@ -5,33 +5,24 @@ module.exports = function(env){
 		app = env.app,
 		handle = env.handle,
 		routes = {};
-
-	// Outsider > Node API
-
-	
-	// Rails > Node API
 		
 	app.post("/incoming_call", handle.call_received);
 	
-	app.get("/operator/login/:id/:token", handle.insider_login);
+	app.get("/operator/login/:id/:token", handle.operator_login);
 	
-	app.get("/operator/logout/:id/:token", handle.insider_logout);
-	
-	// Outsider Websocket Connections
-	
+	app.get("/operator/logout/:id/:token", handle.operator_logout);
+		
 	io.of('/chatter').on('connection', function (socket) {
 		socket.emit('ready', {  });
 		socket.on('auth', function(data){
-			handle.outsider_connect(socket, data);
+			handle.chatter_connect(socket, data);
 		});
 	});
-	
-	// Insider Websocket Connections
-	
+		
 	io.of('/operator').on('connection', function (socket) {
 		socket.emit('ready', {  });
 		socket.on('auth', function(data){
-			handle.insider_connect(socket, data);
+			handle.operator_connect(socket, data);
 		});
 	});
 	

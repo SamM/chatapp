@@ -51,7 +51,7 @@ h1{
 	bottom: 100px;
 	border: 3px solid #777777;
 	border-radius: 5px;
-	overflow-y: scroll;
+	overflow-y: auto;
 	background-color: #FFFFFF;
 }
 #messages{
@@ -107,8 +107,13 @@ h1{
 	padding: 10px;
 	background-color: #EEEEEE;
 	font-style: italic;
+	border-radius: 5px;
 }
-.error {
+.positive {
+	background-color: #DDFFDD;
+	color: #009900;
+}
+.negative {
 	background-color: #FFDDDD;
 	color: #BB0000;
 }
