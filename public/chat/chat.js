@@ -41,15 +41,51 @@ chat.start_typing = function() {
 }
 
 chat.stop_typing = function() {
-    clearTimeout(chat.typing_timeout);
-    chat.typing_timeout = null;
-    send.stop_typing();
+	if(chat.typing_timeout){
+		clearTimeout(chat.typing_timeout);
+	    chat.typing_timeout = null;
+	    send.stop_typing();
+	}
     $("#message_input").css("border-color", "#777777");
 }
 
+chat.typing_notice_before = "";
+chat.typing_notice_timer = null;
+chat.show_typing_notice = function(){
+	chat.clear_typing_notice(true);
+	chat.typing_notice_before = $("#typing")[0].innerHTML;
+	$("#typing").html(chat.operator_name+" is typing ...").show();
+	//chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 2000);
+}
+
+chat.hide_typing_notice = function(){
+	chat.clear_typing_notice();
+	$("#typing").fadeOut(400, function(){
+		$(this).html(chat.typing_notice_before||"").show();
+	});
+}
+
+chat.clear_typing_notice = function(reset){
+	if(chat.typing_notice_timer){
+		clearTimeout(chat.typing_notice_timer);
+		chat.typing_notice_timer = null;
+		if(reset){ $("#typing").html(chat.typing_notice_before||"").show(); }
+	}
+}
+
+chat.show_message_seen_notice = function(date_time){
+	$("#typing").html('Seen');
+};
+
+chat.hide_message_seen_notice = function(){
+	$("#typing").fadeOut(400, function(){
+		$(this).html("").show();
+	});
+};
+
 chat.user_activity = function() {
     if (chat.unread_messages_here) {
-        send.read_message();
+        send.message_read();
         chat.unread_messages_here = false;
     }
     chat.scroll_messages();
@@ -60,6 +96,7 @@ chat.scroll_messages = function() {
 }
 
 chat.inputSubmit = function() {
+	chat.stop_typing();
     var message = $("#message_input").val();
     if (message.length) {
         send.new_message(message);
@@ -74,7 +111,6 @@ chat.inputKeyPress = function(ev) {
         // Enter
         if (!ev.shiftKey) {
             // Shift >> New Line
-            chat.stop_typing();
             $("#input").submit();
             ev.preventDefault();
         }
@@ -121,13 +157,21 @@ receive.self_message = function(data) {
 
 receive.operator_message = function(data) {
     chat.add_message(chat.operator_name, data.message, "operator");
+	chat.unread_messages_here = true;
 };
 
-receive.messages_seen = function(data) {
+receive.message_seen = function(data) {
+	chat.unread_messages_there = false;
+	chat.show_message_seen_notice();
     console.log("Messages seen by operator");
 };
 
 receive.typing = function(data) {
+	if(data.typing){
+		chat.show_typing_notice();
+	}else{
+		chat.hide_typing_notice();
+	}
     console.log("Operator has " + (data.typing ? "started": "stopped") + " typing");
 };
 
@@ -136,8 +180,8 @@ send.auth = function() {
     socket.emit('auth', auth);
 };
 
-send.read_message = function(id) {
-    socket.emit("read_message", id);
+send.message_read = function() {
+    socket.emit("message_read", {});
 };
 
 send.start_typing = function() {
@@ -153,6 +197,8 @@ send.stop_typing = function() {
 };
 
 send.new_message = function(message) {
+	chat.unread_messages_there = true;
+	chat.hide_message_seen_notice();
     socket.emit("new_message", {
         "message": message
     });

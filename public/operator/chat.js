@@ -68,9 +68,11 @@ chat.start_typing = function() {
 }
 
 chat.stop_typing = function() {
-    clearTimeout(chat.typing_timeout);
-    chat.typing_timeout = null;
-    send.stop_typing();
+	if(chat.typing_timeout){
+    	clearTimeout(chat.typing_timeout);
+    	chat.typing_timeout = null;
+    	send.stop_typing();
+	}
     $("#message_input").css("border-color", "#777777");
 }
 
@@ -79,7 +81,7 @@ chat.user_activity = function() {
 		resetTitle();
 	}
     if (chat.unread_messages_here) {
-        send.read_message();
+        send.message_read();
         chat.unread_messages_here = false;
     }
     chat.scroll_messages();
@@ -127,6 +129,16 @@ chat.clear_typing_notice = function(reset){
 	}
 }
 
+chat.show_message_seen_notice = function(date_time){
+	$("#typing").html('Seen');
+};
+
+chat.hide_message_seen_notice = function(){
+	$("#typing").fadeOut(400, function(){
+		$(this).html("").show();
+	});
+};
+
 chat.build = function() {
     var content = $("#content")
     .html('<div id="display"></div>')
@@ -152,6 +164,7 @@ chat.build = function() {
 }
 
 chat.inputSubmit = function() {
+	chat.stop_typing();
     var message = $("#message_input").val();
     if (message.length) {
         send.new_message(message);
@@ -166,7 +179,6 @@ chat.inputKeyPress = function(ev) {
         // Enter
         if (!ev.shiftKey) {
             // Shift >> New Line
-            chat.stop_typing();
             $("#input").submit();
             ev.preventDefault();
         }
@@ -233,9 +245,12 @@ receive.self_message = function(data) {
 
 receive.chatter_message = function(data) {
     chat.add_message(chat.chatter_name, data.message, "other");
+	chat.unread_messages_here = true;
 };
 
-receive.messages_seen = function(data) {
+receive.message_seen = function(data) {
+	chat.unread_messages_there = false;
+	chat.show_message_seen_notice();
     console.log("Messages seen by chatter");
 };
 
@@ -261,8 +276,8 @@ send.decline_call = function(token) {
     socket.emit("decline_call", token);
 };
 
-send.read_message = function() {
-    socket.emit("read_message", {
+send.message_read = function() {
+    socket.emit("message_read", {
         conversation_token: chat.conversation_token
     });
 };
@@ -282,6 +297,8 @@ send.stop_typing = function() {
 };
 
 send.new_message = function(message) {
+	chat.unread_messages_there = true;
+	chat.hide_message_seen_notice();
     socket.emit("new_message", {
         "message": message,
         conversation_token: chat.conversation_token

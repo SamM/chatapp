@@ -6,7 +6,7 @@ body {
 }
 
 #header{
-	background-color: #AAAAAA;
+	background-color: #FFDF88;
 }
 
 h1{
@@ -63,7 +63,7 @@ h1{
 	right: 10px;
 	bottom: 95px;
 	line-height: 25px;
-	font-size: 12px;
+	font-size: 14px;
 	display: none;
 }
 #input{

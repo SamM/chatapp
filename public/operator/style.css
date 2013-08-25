@@ -65,7 +65,7 @@ body {
 }
 
 #header{
-	background-color: #CCCCCC;
+	background-color: #AAFFDF;
 }
 
 h1{
@@ -144,7 +144,7 @@ h1{
 #typing {
 	position: absolute;
 	width: auto;
-	left: 10px;
+	left: 15px;
 	right: 10px;
 	bottom: 95px;
 	line-height: 25px;

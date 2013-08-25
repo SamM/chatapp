@@ -33,6 +33,7 @@ dao.operator.save = function(token, session){
 		session = token;
 		token = session.token;
 	}
+	delete operators[token];
 	return operators[token] = session;
 };
 dao.operator.get = function(operator){
@@ -80,6 +81,7 @@ dao.operator.search = searcher(operators);
 dao.chatter.create = function(token, secret, name){
 	var session = new Session(secret, token);
 	if(name) session.name = name;
+	delete chatters[token];
 	return chatters[token] = session;
 };
 dao.chatter.save = function(token, session){
