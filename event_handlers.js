@@ -207,6 +207,10 @@ module.exports = function(env){
 		socket.emit("self_message", data);
 	};
 	
+	handle.operator_receives_call = function(socket, conversation_token, operator_token){
+		log("Operator has recieved call:", operator_token, conversation_token);
+	};
+	
 	handle.operator_disconnect = function(socket, data){};
 	
 	handle.operator_status = function(socket, data){};
@@ -311,6 +315,9 @@ module.exports = function(env){
 			});
 			socket.on("status", function(data){
 				handle.operator_status(socket, data);
+			});
+			socket.on("call_received", function(token){
+				handle.operator_receives_call(socket, token, operator.token);
 			});
 			socket.on("accept_call", function(token){
 				handle.operator_accepts_call(socket, token, operator.token);

@@ -254,6 +254,7 @@ receive.auth_error = function(error) {
 };
 
 receive.call_request = function(data) {
+	socket.emit("call_received", data.conversation_token);
     var token = data.conversation_token,
     dialog = $("#call_dialog"),
     profile = $('<div class="call_profile"></div>'),

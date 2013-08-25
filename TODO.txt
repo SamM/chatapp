@@ -1,4 +1,4 @@
-Time/date stamp for messages seen notices
-Check if operator recieves call_request
-Persistent logins/sessions
+Do something if operator doesn't receive a call_request in 2 seconds
 Chatter call declined notice
+Persistent logins/sessions
+Verify time/date stamps for messages seen notices are accurate for users in different timezones
