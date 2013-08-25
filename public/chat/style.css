@@ -38,7 +38,6 @@ h1{
 	right: 40%;
 	top: 90px;
 	bottom: 0;
-
 	border: 7px solid #CCCCCC;
 }
 #scroll{
@@ -48,7 +47,7 @@ h1{
 	left: 7px;
 	right: 7px;
 	top: 7px;
-	bottom: 100px;
+	bottom: 120px;
 	border: 3px solid #777777;
 	border-radius: 5px;
 	overflow-y: auto;
@@ -57,10 +56,20 @@ h1{
 #messages{
 	padding: 15px;
 }
+#typing {
+	position: absolute;
+	width: auto;
+	left: 10px;
+	right: 10px;
+	bottom: 95px;
+	line-height: 25px;
+	font-size: 12px;
+	display: none;
+}
 #input{
 	position: absolute;
 	width: auto;
-	height: 100px;
+	height: 95px;
 	left: 0;
 	right: 0;
 	bottom: 0;
@@ -74,7 +83,7 @@ h1{
 	height: auto;
 	left: 5px;
 	right: 100px;
-	top: 5px;
+	top: 0;
 	bottom: 5px;
 	border-radius: 5px 5px;
 	border: 2px solid #777777;
@@ -89,7 +98,7 @@ h1{
 	position: absolute;
 	width: 90px;
 	right: 7px;
-	top: 7px;
+	top: 2px;
 	height: 86px;
 	border: 4px outset #EEEEEE;
 	background-color: #DDDDDD;
