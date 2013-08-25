@@ -114,7 +114,7 @@ module.exports = function(env){
 		var chatter = dao.chatter.get(socket.chatter);
 		if(chatter.call_accepted){
 			var operator = dao.operator.getByToken(chatter.chatting_with);
-			handle.notify_operator_of_read(operator, chatter.conversation_token, data);
+			handle.notify_operator_of_read(operator, chatter.conversation_token, (new Date()).getTime());
 		}
 	};
 	
@@ -197,7 +197,7 @@ module.exports = function(env){
 	handle.operator_read_message = function(socket, data){
 		log("Operator reads message: ",socket.operator.token, socket.operator.name);
 		var chatter = dao.chatter.getByConversationToken(data.conversation_token);
-		handle.notify_chatter_of_read(chatter);
+		handle.notify_chatter_of_read(chatter, (new Date()).getTime());
 	};
 	
 	handle.operator_send_msg = function(socket, data){
@@ -278,8 +278,8 @@ module.exports = function(env){
 		chatter.socket.emit("typing", {"typing": typing});
 	};
 	
-	handle.notify_chatter_of_read = function(chatter, data){
-		chatter.socket.emit("message_seen", {});
+	handle.notify_chatter_of_read = function(chatter, timestamp){
+		chatter.socket.emit("message_seen", {"timestamp": timestamp});
 	};
 	
 	handle.notify_chatter_of_msg = function(chatter, message){
@@ -390,8 +390,8 @@ module.exports = function(env){
 		operator.socket.emit("typing", {"typing": typing, "conversation_token": conversation_token});
 	};
 	
-	handle.notify_operator_of_read = function(operator, conversation_token, data){
-		operator.socket.emit("message_seen", {"conversation_token": conversation_token});
+	handle.notify_operator_of_read = function(operator, conversation_token, timestamp){
+		operator.socket.emit("message_seen", {"conversation_token": conversation_token, "timestamp": timestamp});
 	};
 	
 	handle.notify_operator_of_msg = function(operator, conversation_token, message){

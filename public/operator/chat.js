@@ -129,8 +129,55 @@ chat.clear_typing_notice = function(reset){
 	}
 }
 
-chat.show_message_seen_notice = function(date_time){
-	$("#typing").html('Seen');
+function parseTime(time){
+	if(!time){
+		return "";
+	}
+	var str = "",
+		ampm = "am";
+	if(typeof time != "object"){
+		time = new Date(time);
+	}
+	str = time.toTimeString().split(" ")[0].split(":");
+	str.splice(2,1);
+	if(str[0]>=12){
+		if(str[0]!=12){
+			str[0] -= 12;
+		}
+		ampm = "pm";
+	}else if(str[0]==0){
+		str[0] = 12;
+	}
+	return str.join(":")+ampm;
+}
+
+function parseDate(date){
+	if(!date){
+		return "";
+	}
+	if(typeof date != "object"){
+		date = new Date(date);
+	}
+	var str = "",
+		datestr = date.toDateString(),
+		timestr = parseTime(date),
+		now = new Date();
+	if(date.getFullYear() != now.getFullYear()){
+		str = datestr+" "+timestr;
+	}else if((date.getMonth() != now.getMonth()) || (now.getDate() - date.getDate() >= 7)){
+		str = datestr.split(" ");
+		str[3] = timestr;
+		str = str.join(" ");
+	}else if(date.getDate() == now.getDate()){
+		str = timestr;
+	}else{
+		str = datestr.split(" ")[0]+" "+timestr;
+	}
+	return str;
+}
+
+chat.show_message_seen_notice = function(timestamp){
+	$("#typing").html('Seen '+parseDate(timestamp));
 };
 
 chat.hide_message_seen_notice = function(){
@@ -250,7 +297,7 @@ receive.chatter_message = function(data) {
 
 receive.message_seen = function(data) {
 	chat.unread_messages_there = false;
-	chat.show_message_seen_notice();
+	chat.show_message_seen_notice(data.timestamp);
     console.log("Messages seen by chatter");
 };
 
