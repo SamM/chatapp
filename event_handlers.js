@@ -10,6 +10,39 @@ module.exports = function(env){
 		console.log.apply(console, arguments);
 	}
 	
+	var processMessage = function(msg){
+		var strip_attrs = /<\s*([a-zA-Z0-9]*)\s+([^>]*)>/gi;
+		msg = msg.replace(strip_attrs,"<$1>");
+		var strip_tags = /<(\/?)\s*([a-zA-Z0-9]*)[^>]*>/gi,
+			open_tags = [],
+			accept_tags = ["b","strong","i","u"];
+		function filter_tags(match, p1, p2, offset, str){
+			p2 = p2.toLowerCase();
+			if(accept_tags.indexOf(p2)==-1)
+				return "";
+			var tag = "<";
+			if(p1=="/"){
+				var i = open_tags.indexOf(p2);
+				if(i>-1){
+					for(var t=i-1;t>=0;t--){
+						tag = "</"+open_tags[t]+">"+tag;
+					}
+					open_tags.splice(0,i+1);
+				}
+				tag += "/";
+			}else{
+				open_tags.unshift(p2);
+			}
+			tag += p2+">";
+			return tag;
+		}
+		msg = msg.replace(strip_tags, filter_tags);
+		for(var i=0;i<open_tags.length;i++){
+			msg+="</"+open_tags[i]+">";
+		}
+		return msg;
+	}
+	
 	handle.stop_waiting_for_operators = function(chatter_token){
 		var chatter = dao.chatter.getByToken(chatter_token);
 		if(!chatter.call_accepted && chatter.operators.length > 0){
@@ -119,13 +152,13 @@ module.exports = function(env){
 	};
 	
 	handle.chatter_send_msg = function(socket, data){
-		var message = data.message,
-			chatter = dao.chatter.get(socket.chatter);
+		var chatter = dao.chatter.get(socket.chatter);
 		log("Chatter sends message: ",socket.chatter.token, socket.chatter.name);
+		data.message = processMessage(data.message);
 		socket.emit("self_message", data);
 		if(chatter.call_accepted){
 			var operator = dao.operator.getByToken(chatter.chatting_with);
-			handle.notify_operator_of_msg(operator, chatter.conversation_token, message);
+			handle.notify_operator_of_msg(operator, chatter.conversation_token, data.message);
 		}else{
 			// TODO: Handle messages sent before call is accepted
 		}
@@ -202,6 +235,7 @@ module.exports = function(env){
 	
 	handle.operator_send_msg = function(socket, data){
 		var chatter = dao.chatter.getByConversationToken(data.conversation_token);
+		data.message = processMessage(data.message);
 		handle.notify_chatter_of_msg(chatter, data.message);
 		log("Operator sends message:",socket.operator.token,socket.operator.name);
 		socket.emit("self_message", data);

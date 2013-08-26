@@ -1,4 +1,6 @@
 Do something if operator doesn't receive a call_request in 2 seconds
 Chatter call declined notice
+Allow multiple conversations for operator
+Allow operator to change status
 Persistent logins/sessions
 Verify time/date stamps for messages seen notices are accurate for users in different timezones

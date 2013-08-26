@@ -297,9 +297,10 @@ receive.chatter_message = function(data) {
 };
 
 receive.message_seen = function(data) {
+	console.log("Messages seen by chatter");
 	chat.unread_messages_there = false;
 	chat.show_message_seen_notice(data.timestamp);
-    console.log("Messages seen by chatter");
+    
 };
 
 receive.typing = function(data) {
