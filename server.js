@@ -36,7 +36,7 @@ function createOperator(secret, token, name){
 createOperator("a", "1", "Jim");
 createOperator("b", "2", "Bob");
 createOperator("c", "3", "Jill");
-createOperator("456", "123", "Operator Guy");
+createOperator("operatorSecret", "abc", "Operator Guy");
 
 // Dummy chatters
 

@@ -26,6 +26,7 @@ function searcher(data){
 dao.operator.create = function(token, secret, name){
 	var session = new Session(secret, token);
 	if(name) session.name = name;
+	delete operators[token];
 	return operators[token] = session;
 };
 dao.operator.save = function(token, session){
@@ -37,8 +38,10 @@ dao.operator.save = function(token, session){
 	return operators[token] = session;
 };
 dao.operator.get = function(operator){
-	if(operator.token){
-		return dao.operator.getByToken(operator.token);
+	if(!operator) return null;
+	var token = (typeof operator == "string")?operator:operator.token;
+	if(token){
+		return dao.operator.getByToken(token);
 	}
 	return null;
 }
@@ -89,11 +92,14 @@ dao.chatter.save = function(token, session){
 		session = token;
 		token = session.token;
 	}
+	delete chatters[token];
 	return chatters[token] = session;
 };
 dao.chatter.get = function(chatter){
-	if(chatter.token){
-		return dao.chatter.getByToken(chatter.token);
+	if(!chatter) return null;
+	var token = (typeof chatter == "string")?chatter:chatter.token;
+	if(token){
+		return dao.chatter.getByToken(token);
 	}
 	return null;
 }

@@ -10,6 +10,15 @@ module.exports = function(env){
 		console.log.apply(console, arguments);
 	}
 	
+	function get_socket(channel, socket_id){
+		var socket = io.of("/"+channel).sockets[socket_id];
+		if(!socket){
+			log("Bad socket!!!",socket_id);
+			return io.of("/"+channel).socket(socket_id);
+		}
+		return socket;
+	}
+	
 	var processMessage = function(msg){
 		var strip_attrs = /<\s*([a-zA-Z0-9]*)\s+([^>]*)>/gi;
 		msg = msg.replace(strip_attrs,"<$1>");
@@ -43,8 +52,8 @@ module.exports = function(env){
 		return msg;
 	}
 	
-	handle.stop_waiting_for_operators = function(chatter_token){
-		var chatter = dao.chatter.getByToken(chatter_token);
+	handle.stop_waiting_for_operators = function(chatter){
+		var chatter = dao.chatter.get(chatter);
 		if(!chatter.call_accepted && chatter.operators.length > 0){
 			handle.call_declined(chatter);
 		}
@@ -67,6 +76,7 @@ module.exports = function(env){
 				chatter.chatting_with = null;
 				chatter.connected = false;
 				chatter.socket = null;
+				chatter.socket_id = null;
 			dao.chatter.save(chatter);
 			handle.call_operators(chatter);
 		}		
@@ -77,6 +87,7 @@ module.exports = function(env){
 			operator = dao.operator.create(body.token, body.secret, body.name);
 			operator.connected = false;
 			operator.socket = null;
+			operator.socket_id;
 			operator.call_requests = [];
 			operator.conversations = [];
 		dao.operator.save(operator);
@@ -119,41 +130,43 @@ module.exports = function(env){
 	handle.chatter_connect = function(socket, data){
 		var token = data.token,
 			secret = data.secret,
-			session = dao.chatter.getByToken(token);
+			chatter = dao.chatter.getByToken(token);
 		
 		if(token === undefined || secret === undefined){
 			handle.reject_chatter_connect(socket, token === undefined ? "missing token" : "missing secret");
-		}else if(session === null){
+		}else if(chatter === null){
 			handle.reject_chatter_connect(socket, "bad token");
-		}else if(session.secret !== secret){
+		}else if(chatter.secret !== secret){
 			handle.reject_chatter_connect(socket, "bad secret");
 		}else{
 			// Connected successfully
-			handle.accept_chatter_connect(socket, session);
+			handle.accept_chatter_connect(socket, chatter);
 		}
 	};
 	
-	handle.chatter_typing = function(socket, data){
-		log("Chatter typing: ",data.typing,socket.chatter.token, socket.chatter.name);
-		var chatter = dao.chatter.get(socket.chatter);
+	handle.chatter_typing = function(socket, data, chatter){
+		chatter = dao.chatter.get(chatter);
+		log("Chatter typing: ",data.typing,chatter.token, chatter.name);
+		log("Ch id",socket.id);
 		if(chatter.call_accepted){
 			var operator = dao.operator.getByToken(chatter.chatting_with);
 			handle.notify_operator_of_typing(operator, chatter.conversation_token, data.typing);
 		}
 	};
 	
-	handle.chatter_read_message = function(socket, data){
-		log("Chatter reads messages: ",socket.chatter.token, socket.chatter.name);
-		var chatter = dao.chatter.get(socket.chatter);
+	handle.chatter_read_message = function(socket, data, chatter){
+		chatter = dao.chatter.get(chatter);
+		log("Chatter reads messages: ",chatter.token, chatter.name);
 		if(chatter.call_accepted){
 			var operator = dao.operator.getByToken(chatter.chatting_with);
 			handle.notify_operator_of_read(operator, chatter.conversation_token, (new Date()).getTime());
 		}
 	};
 	
-	handle.chatter_send_msg = function(socket, data){
-		var chatter = dao.chatter.get(socket.chatter);
-		log("Chatter sends message: ",socket.chatter.token, socket.chatter.name);
+	handle.chatter_send_msg = function(socket, data, chatter){
+		chatter = dao.chatter.get(chatter);
+		log("Chatter sends message: ",chatter.token, chatter.name);
+		log("Ch id",socket.id);
 		data.message = processMessage(data.message);
 		socket.emit("self_message", data);
 		if(chatter.call_accepted){
@@ -171,22 +184,22 @@ module.exports = function(env){
 	handle.operator_connect = function(socket, data){
 		var token = data.token,
 			secret = data.secret,
-			session = dao.operator.getByToken(token);
+			operator = dao.operator.getByToken(token);
 		
 		if(token === undefined || secret === undefined){
 			handle.reject_operator_connect(socket, token === undefined ? "missing token" : "missing secret");
-		}else if(session === null){
+		}else if(operator === null){
 			handle.reject_operator_connect(socket, "bad token");
-		}else if(session.secret !== secret){
+		}else if(operator.secret !== secret){
 			handle.reject_operator_connect(socket, "bad secret");
 		}else{
 			// Connected successfully
-			handle.accept_operator_connect(socket, session);
+			handle.accept_operator_connect(socket, operator);
 		}
 	};
 	
-	handle.operator_accepts_call = function(socket, token, operator_token){
-		log("Operator accepts call: ",operator_token,token);
+	handle.operator_accepts_call = function(socket, token, operator){
+		log("Operator accepts call: ",operator.token,token);
 		var chatter = dao.chatter.search(function(session){
 			return session.conversation_token == token;
 		});
@@ -195,10 +208,10 @@ module.exports = function(env){
 			handle.call_already_accepted(socket, chatter);
 		}else{
 			chatter.call_accepted = true;
-			chatter.chatting_with = operator_token;
+			chatter.chatting_with = operator.token;
 			
 			chatter = dao.chatter.save(chatter);
-			var operator = dao.operator.getByToken(operator_token);
+			operator = dao.operator.get(operator);
 			
 			log("Connecting chatter and operator", chatter.name, operator.name);
 			
@@ -207,11 +220,12 @@ module.exports = function(env){
 		}
 	};
 	
-	handle.operator_declines_call = function(token, operator_token){
-		log("Operator declines call", operator_token);
+	handle.operator_declines_call = function(token, operator){
+		operator = dao.operator.get(operator);
+		log("Operator declines call", operator.token);
 		var chatter = dao.chatter.getByConversationToken(token);
 		if(chatter === null) return;
-		var i = chatter.operators.indexOf(operator_token);
+		var i = chatter.operators.indexOf(operator.token);
 		if(i > -1 && !chatter.call_accepted){
 			chatter.operators.splice(i,1);
 			dao.chatter.save(chatter);
@@ -221,28 +235,33 @@ module.exports = function(env){
 		}
 	};
 	
-	handle.operator_typing = function(socket, data){
-		log("Operator typing: ",data.typing,socket.operator.token, socket.operator.name);
+	handle.operator_typing = function(socket, data, operator){
+		if(!operator) log("Operator typing. NO OPERATOR !!!", data.typing);
+		else log("Operator typing: ",data.typing,operator.token, operator.name);
+		log("Op id",socket.id);
 		var chatter = dao.chatter.getByConversationToken(data.conversation_token);
 		handle.notify_chatter_of_typing(chatter, data.typing);
 	};
 	
-	handle.operator_read_message = function(socket, data){
-		log("Operator reads message: ",socket.operator.token, socket.operator.name);
+	handle.operator_read_message = function(socket, data, operator){
+		if(!operator) log("Operator reads message. NO OPERATOR !!!");
+		else log("Operator reads message: ",operator.token, operator.name);
 		var chatter = dao.chatter.getByConversationToken(data.conversation_token);
 		handle.notify_chatter_of_read(chatter, (new Date()).getTime());
 	};
 	
-	handle.operator_send_msg = function(socket, data){
+	handle.operator_send_msg = function(socket, data, operator){
 		var chatter = dao.chatter.getByConversationToken(data.conversation_token);
 		data.message = processMessage(data.message);
 		handle.notify_chatter_of_msg(chatter, data.message);
-		log("Operator sends message:",socket.operator.token,socket.operator.name);
+		if(!operator) log("Operator sends message. NO OPERATOR !!!");
+		else log("Operator sends message:",operator.token,operator.name);
+		log("Op id",socket.id);
 		socket.emit("self_message", data);
 	};
 	
-	handle.operator_receives_call = function(socket, conversation_token, operator_token){
-		log("Operator has recieved call:", operator_token, conversation_token);
+	handle.operator_receives_call = function(socket, conversation_token, operator){
+		log("Operator has recieved call:", operator.token, conversation_token);
 	};
 	
 	handle.operator_disconnect = function(socket, data){};
@@ -252,25 +271,39 @@ module.exports = function(env){
 	// Node to Chatter
 	
 	handle.accept_chatter_connect = function(socket, chatter){
-		if(chatter.socket == socket){
+		if(chatter.socket_id == socket.id){
 			log("Chatter sends auth again");
 		}else{
-			log("Chatter connected: ",chatter.token,chatter.name);
-			chatter.socket = socket;
+			chatter = dao.chatter.get(chatter);
+			log("Chatter connected: ",chatter.token,chatter.name,chatter.socket_id);
+			if(chatter.socket_id){
+				log("*Reconnect*");
+				get_socket("chatter", chatter.socket_id).emit("alert", "reconnect");
+			}
 			chatter.connected = true;
-			socket.chatter = dao.chatter.save(chatter);
+			chatter.socket_id = socket.id;
+			chatter = dao.chatter.save(chatter);
+			log(chatter.socket_id);
 			// Setup socket events
 			socket.on("typing", function(data){
-				handle.chatter_typing(socket, data);
+				//chatter.socket_id = socket.id;
+				//chatter = dao.chatter.save(chatter);
+				handle.chatter_typing(socket, data, chatter);
 			});
 			socket.on("message_read", function(data){
-				handle.chatter_read_message(socket, data);
+				//chatter.socket_id = socket.id;
+				//chatter = dao.chatter.save(chatter);
+				handle.chatter_read_message(socket, data, chatter);
 			});
 			socket.on("new_message", function(data){
-				handle.chatter_send_msg(socket, data);
+				//chatter.socket_id = socket.id;
+				//chatter = dao.chatter.save(chatter);
+				handle.chatter_send_msg(socket, data, chatter);
 			});
 			socket.on("disconnect", function(data){
-				handle.chatter_disconnect(socket, data);
+				//chatter.socket_id = socket.id;
+				//chatter = dao.chatter.save(chatter);
+				handle.chatter_disconnect(socket, data, chatter);
 			});
 			socket.emit("auth_success", {});
 			if(chatter.call_accepted){
@@ -290,80 +323,110 @@ module.exports = function(env){
 	};
 	
 	handle.call_declined = function(chatter){
+		chatter = dao.chatter.get(chatter);
 		log("Notifying chatter that call was declined by all operators who were called ",chatter.token, chatter.name);
 		chatter.call_declined = true;
 		dao.chatter.save(chatter);
 		if(chatter.connected){
-			chatter.socket.emit("call_declined", {});
+			get_socket("chatter",chatter.socket_id).emit("call_declined", {});
 		}else{
 			log("Chatter not connected so will notify of declined call when they connect");
 		}
 	};
 	
 	handle.notify_chatter_of_operator = function(chatter, operator){
+		chatter = dao.chatter.get(chatter);
 		if(chatter.connected){
 			log("Notifying chatter of operator", 
 				chatter.name, 
 				operator.name);
 			var operator = dao.operator.getByToken(chatter.chatting_with);
-			chatter.socket.emit("call_connected", {name: operator.name});
+			get_socket("chatter",chatter.socket_id).emit("call_connected", {name: operator.name});
 		}else{
 			log("Would notify chatter of operator but chatter not connected yet.")
 		}
 	};
 	
 	handle.notify_chatter_of_typing = function(chatter, typing){
-		chatter.socket.emit("typing", {"typing": typing});
+		chatter = dao.chatter.get(chatter);
+		log("Ch id",chatter.socket_id);
+		get_socket("chatter",chatter.socket_id).emit("typing", {"typing": typing});
 	};
 	
 	handle.notify_chatter_of_read = function(chatter, timestamp){
-		chatter.socket.emit("message_seen", {"timestamp": timestamp});
+		chatter = dao.chatter.get(chatter);
+		get_socket("chatter",chatter.socket_id).emit("message_seen", {"timestamp": timestamp});
 	};
 	
 	handle.notify_chatter_of_msg = function(chatter, message){
-		chatter.socket.emit("operator_message", {"message": message});
+		chatter = dao.chatter.get(chatter);
+		log("Ch id",chatter.socket_id);
+		get_socket("chatter",chatter.socket_id).emit("operator_message", {"message": message});
 	};
 	
 	// Node to Operator
 	
 	handle.accept_operator_connect = function(socket, operator){
-		log("Operator connected: ", operator.token, operator.name);
-		if(operator.socket == socket){
+		if(operator.socket_id == socket.id){
 			log("Operator sends auth again");
 		}else{
-			operator.socket = socket;
+			operator = dao.operator.get(operator);
+			log("Operator connected: ", operator.token, operator.name, operator.socket_id);
+			if(operator.socket_id){
+				log("*Reconnect*");
+				get_socket("operator", operator.socket_id).emit("alert", "reconnect");
+			}
 			operator.connected = true;
-			socket.operator = dao.operator.save(operator);
-
+			operator.socket_id = socket.id;
+			operator = dao.operator.save(operator);
+			log(operator.socket_id);
 			socket.on("typing", function(data){
-				handle.operator_typing(socket, data);
+				//operator.socket_id = socket.id;
+				//operator = dao.operator.save(operator);
+				handle.operator_typing(socket, data, operator);
 			});
 			socket.on("message_read", function(data){
-				handle.operator_read_message(socket, data);
+				//operator.socket_id = socket.id;
+				//operator = dao.operator.save(operator);
+				handle.operator_read_message(socket, data, operator);
 			});
 			socket.on("new_message", function(data){
-				handle.operator_send_msg(socket, data);
+				//operator.socket_id = socket.id;
+				//operator = dao.operator.save(operator);
+				handle.operator_send_msg(socket, data, operator);
 			});
 			socket.on("disconnect", function(data){
-				handle.operator_disconnect(socket, data);
+				//operator.socket_id = socket.id;
+				//operator = dao.operator.save(operator);
+				log("Operator Disconnects!!");
+				handle.operator_disconnect(socket, data, operator);
 			});
 			socket.on("status", function(data){
-				handle.operator_status(socket, data);
+				operator.socket_id = socket.id;
+				operator = dao.operator.save(operator);
+				handle.operator_status(socket, data, operator);
 			});
 			socket.on("call_received", function(token){
-				handle.operator_receives_call(socket, token, operator.token);
+				operator.socket_id = socket.id;
+				operator = dao.operator.save(operator);
+				handle.operator_receives_call(socket, token, operator);
 			});
 			socket.on("accept_call", function(token){
-				handle.operator_accepts_call(socket, token, operator.token);
+				operator.socket_id = socket.id;
+				operator = dao.operator.save(operator);
+				handle.operator_accepts_call(socket, token, operator);
 			});
 			socket.on("decline_call", function(token){
-				handle.operator_declines_call(token, operator.token);
+				operator.socket_id = socket.id;
+				operator = dao.operator.save(operator);
+				handle.operator_declines_call(token, operator);
 			});
 			socket.emit("auth_success", {});
 
 			if(operator.conversations.length){
 				operator.conversations.forEach(function(token){
 					var chatter = dao.chatter.getByToken(token);
+					if(!chatter) log("Chatter not found");
 					handle.notify_operator_of_chatter(operator, chatter);
 				});
 			}
@@ -375,7 +438,7 @@ module.exports = function(env){
 
 					if(!chatter.call_accepted){
 						log("Call has not yet been accepted:", token);
-						handle.call_operator(operator.token, chatter);
+						handle.call_operator(operator, chatter);
 					}
 				});
 				operator.call_requests = [];
@@ -389,54 +452,63 @@ module.exports = function(env){
 	};
 	
 	handle.call_operators = function(chatter){
+		chatter = dao.chatter.get(chatter);
 		log("Calling operators for chatter:",chatter.token, chatter.name);
 		var operators = chatter.operators;
 		operators.forEach(function(token){
 			handle.call_operator(token, chatter);
 		});
-		setTimeout(function(){ handle.stop_waiting_for_operators(chatter.token); }, WAITING_TIME);
+		setTimeout(function(){ handle.stop_waiting_for_operators(chatter); }, WAITING_TIME);
 	};
 	
 	handle.call_operator = function(operator_token, chatter){
-		var operator = dao.operator.getByToken(operator_token);
+		var operator = dao.operator.get(operator_token);
+		chatter = dao.chatter.get(chatter);
 		if(operator === null){
 			log("Calling operator fails because operator not found:",operator_token);
 			handle.operator_declines_call(chatter.conversation_token, operator_token);
 			return;
 		}
 		if(operator.connected){
-			log("Calling operator:", operator_token);
-			var	socket = operator.socket;
+			log("Calling operator:", operator.token, operator.socket_id);
+			var	socket = get_socket("operator",operator.socket_id);
 			socket.emit("call_request", {
 				name: chatter.name, 
 				conversation_token: chatter.conversation_token, 
 				chatter_token: chatter.token });
 		}else{
-			log("Operator not connected yet:"+operator_token);
+			log("Operator not connected yet:"+operator.token);
 			operator.call_requests.push(chatter.token);
+			dao.operator.save(operator);
 		}
 	};
 	
 	handle.notify_operator_of_chatter = function(operator, chatter){
+		operator = dao.operator.get(operator);
 		log("Notifying operator of chatter:", operator.name, chatter.name)
 		var token = chatter.token;
 		if(operator.conversations.indexOf(token)===-1){
 			operator.conversations.push(token);
 			dao.operator.save(operator);
 		}
-		operator.socket.emit("call_connected", {conversation_token: chatter.conversation_token, name: chatter.name, chatter_token: chatter.token})
+		get_socket("operator",operator.socket_id).emit("call_connected", {conversation_token: chatter.conversation_token, name: chatter.name, chatter_token: chatter.token})
 	};
 	
 	handle.notify_operator_of_typing = function(operator, conversation_token, typing){
-		operator.socket.emit("typing", {"typing": typing, "conversation_token": conversation_token});
+		operator = dao.operator.get(operator);
+		log("Op id",operator.socket_id);
+		get_socket("operator",operator.socket_id).emit("typing", {"typing": typing, "conversation_token": conversation_token});
 	};
 	
 	handle.notify_operator_of_read = function(operator, conversation_token, timestamp){
-		operator.socket.emit("message_seen", {"conversation_token": conversation_token, "timestamp": timestamp});
+		operator = dao.operator.get(operator);
+		get_socket("operator",operator.socket_id).emit("message_seen", {"conversation_token": conversation_token, "timestamp": timestamp});
 	};
 	
 	handle.notify_operator_of_msg = function(operator, conversation_token, message){
-		operator.socket.emit("chatter_message", {"message": message, "conversation_token": conversation_token});
+		operator = dao.operator.get(operator);
+		log("Op id",operator.socket_id);
+		get_socket("operator",operator.socket_id).emit("chatter_message", {"message": message, "conversation_token": conversation_token});
 	};
 	
 	return handle;

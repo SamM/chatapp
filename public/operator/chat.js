@@ -1,6 +1,6 @@
 var auth = {
-    "secret": "456",
-    "token": "123"
+    "secret": "operatorSecret",
+    "token": "abc"
 },
 socket = null,
 receive = {},
@@ -107,17 +107,22 @@ chat.closeChat = function() {
 
 chat.typing_notice_before = "";
 chat.typing_notice_timer = null;
+chat.typing_notice_fading = false;
 chat.show_typing_notice = function(){
 	chat.clear_typing_notice(true);
-	chat.typing_notice_before = $("#typing")[0].innerHTML;
+	if(!chat.typing_notice_fading){
+		chat.typing_notice_before = $("#typing")[0].innerHTML;
+	}
 	$("#typing").html(chat.chatter_name+" is typing ...").show();
 	//chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 2000);
 }
 
 chat.hide_typing_notice = function(){
 	chat.clear_typing_notice();
+	chat.typing_notice_fading = true;
 	$("#typing").fadeOut(400, function(){
 		$(this).html(chat.typing_notice_before||"").show();
+		chat.typing_notice_fading = false;
 	});
 }
 
@@ -140,6 +145,7 @@ function parseTime(time){
 	}
 	str = time.toTimeString().split(" ")[0].split(":");
 	str.splice(2,1);
+	str[0]=parseInt(str[0]);
 	if(str[0]>=12){
 		if(str[0]!=12){
 			str[0] -= 12;
@@ -188,7 +194,7 @@ chat.hide_message_seen_notice = function(){
 
 chat.build = function() {
     var content = $("#content")
-    .html('<div id="display"></div>')
+    .html('<div id="display">asdg</div>')
     .append(
     $('<div id="chat"></div>')
     .append(
@@ -198,12 +204,14 @@ chat.build = function() {
 	.append('<div id="typing"></div>')
     .append(
     $('<form id="input"></form>')
-    .append(
-    $('<textarea id="message_input"></textarea>')
-    .keypress(chat.inputKeyPress)
-    .focus(chat.user_activity)
-    .blur(chat.user_activity)
-    )
+    .append($('<div class="textarea_wrapper"></div>')
+		.append(
+			$('<textarea id="message_input"></textarea>')
+		    .keypress(chat.inputKeyPress)
+		    .focus(chat.user_activity)
+		    .blur(chat.user_activity)
+	    )
+	)
     .append($('<input id="send" type="submit" value="Send">'))
     .submit(chat.inputSubmit)
     )
@@ -302,6 +310,14 @@ receive.message_seen = function(data) {
 	chat.show_message_seen_notice(data.timestamp);
     
 };
+
+receive.log = function(data){
+	console.log(data);
+}
+
+receive.alert = function(data){
+	alert(data);
+}
 
 receive.typing = function(data) {
 	if(data.typing){

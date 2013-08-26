@@ -1,5 +1,5 @@
 var auth = {
-    "secret": "456",
+    "secret": "chatterSecret",
     "token": "123"
 },
 socket = null,
@@ -51,17 +51,22 @@ chat.stop_typing = function() {
 
 chat.typing_notice_before = "";
 chat.typing_notice_timer = null;
+chat.typing_notice_fading = false;
 chat.show_typing_notice = function(){
 	chat.clear_typing_notice(true);
-	chat.typing_notice_before = $("#typing")[0].innerHTML;
+	if(!chat.typing_notice_fading){
+		chat.typing_notice_before = $("#typing")[0].innerHTML;
+	}
 	$("#typing").html(chat.operator_name+" is typing ...").show();
 	//chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 2000);
 }
 
 chat.hide_typing_notice = function(){
 	chat.clear_typing_notice();
+	chat.typing_notice_fading = true;
 	$("#typing").fadeOut(400, function(){
 		$(this).html(chat.typing_notice_before||"").show();
+		chat.typing_notice_fading = false;
 	});
 }
 
@@ -84,6 +89,7 @@ function parseTime(time){
 	}
 	str = time.toTimeString().split(" ")[0].split(":");
 	str.splice(2,1);
+	str[0]=parseInt(str[0]);
 	if(str[0]>=12){
 		if(str[0]!=12){
 			str[0] -= 12;
@@ -222,8 +228,17 @@ receive.typing = function(data) {
     console.log("Operator has " + (data.typing ? "started": "stopped") + " typing");
 };
 
+receive.log = function(data){
+	console.log(data);
+}
+
+receive.alert = function(data){
+	alert(data);
+}
+
 // Send events
 send.auth = function() {
+	console.log("Sending auth", auth);
     socket.emit('auth', auth);
 };
 
@@ -271,7 +286,7 @@ function setup() {
                 token: auth.token,
                 secret: auth.secret,
                 name: $("#login_name").val() || "Chatter",
-                operators: ["1", "2", "3", "123"],
+                operators: ["1", "2", "3", "abc"],
                 conversation_token: "hello_world"
             },
             complete: function(data, status) {

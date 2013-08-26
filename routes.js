@@ -15,6 +15,7 @@ module.exports = function(env){
 	io.of('/chatter').on('connection', function (socket) {
 		socket.emit('ready', {  });
 		socket.on('auth', function(data){
+			console.log("chatter auth",data);
 			handle.chatter_connect(socket, data);
 		});
 	});
@@ -22,6 +23,7 @@ module.exports = function(env){
 	io.of('/operator').on('connection', function (socket) {
 		socket.emit('ready', {  });
 		socket.on('auth', function(data){
+			console.log("operator auth",data);
 			handle.operator_connect(socket, data);
 		});
 	});
