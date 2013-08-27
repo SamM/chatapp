@@ -66,8 +66,9 @@ chat.show_typing_notice = function(){
 chat.hide_typing_notice = function(){
 	chat.clear_typing_notice();
 	chat.typing_notice_fading = true;
+	var msg = chat.typing_notice_before||"";
 	$("#typing").fadeOut(400, function(){
-		$(this).html(chat.typing_notice_before||"").show();
+		$(this).html(msg).show();
 		chat.typing_notice_fading = false;
 	});
 }
@@ -162,7 +163,7 @@ chat.inputSubmit = function() {
 
 chat.inputKeyPress = function(ev) {
     chat.user_activity();
-    if (ev.charCode == 13) {
+    if (ev.keyCode == 13) {
         // Enter
         if (!ev.shiftKey) {
             // Shift >> New Line
@@ -287,7 +288,7 @@ function setup() {
     }
     $("#input").submit(chat.inputSubmit);
     $("#message_input")
-    .keypress(chat.inputKeyPress)
+    .keydown(chat.inputKeyPress)
     .focus(chat.user_activity)
     .blur(chat.user_activity);
     $(window).focus(chat.user_activity);
