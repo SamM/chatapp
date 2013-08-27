@@ -1,300 +1,281 @@
-var dao = {};
+var redis = require('then-redis'),
+	db = redis.createClient("redis://redistogo:d7527215d8bd631e7fbe6a8110a7a068@koi.redistogo.com:9715/"),
+	dao = {};
 
-dao.operator = {};
-dao.chatter = {};
-
-var operators = {},
-	chatters = {};
-
-dao.operator.use = function(token){
+dao.operator = function(token){
 	if(token.token){
 		token = token.token;
 	}
-	if(typeof token != "string" || !dao.operator.exists(token)){
+	if(typeof token != "string"){
 		return null;
 	}
-	function g(){
-		return operators[token];
+	var pre = "operator:"+token+":",
+		j = "|";
+	function none(){};
+	function split(cb){
+		return function(v){ v = v==""?[]:v.split(j); (cb||none)(v); };
 	}
-	function s(i, v){
-		operators[token][i] = v;
+	function g(key, cb){
+		cb = cb || none;
+		db.get(pre+key).then(function(v){
+			if(v=="null")
+				v = null;
+			if(v=="undefined")
+				v = undefined;
+			if(v=="true")
+				v = true;
+			if(v=="false")
+				v = false;
+			if(typeof v == "string" && v!="" && parseInt(v)!=NaN && !/[^0-9]+/.test(v))
+				v = parseInt(v);
+			if(typeof v == "string" && v!="" && parseFloat(v)!=NaN && !/[^0-9|.]+/.test(v))
+				v = parseFloat(v);
+			cb(v);
+		});
 	}
-	return {
-		get operator(){ return g(); },
-		set operator(v){ operators[token] = v; },
-		
+	function s(key, value){
+		db.set(pre+key, value);
+	}
+	var self = {
+		create: function(secret, name){
+			var operator = {};
+			operator[pre] = token;
+			operator[pre+'secret'] = secret;
+			operator[pre+'name'] = name||null;
+			operator[pre+'connected'] = false;
+			operator[pre+'sockets'] = "";
+			operator[pre+'call_requests'] = "";
+			operator[pre+'conversations'] = "";
+			db.mset(operator);
+			return self;
+		},
+		remove: function(cb){
+			var keys = [
+				pre, 
+				pre+'secret',
+				pre+'name',
+				pre+'connected',
+				pre+'sockets',
+				pre+'call_requests',
+				pre+'conversations'];
+			db.del.apply(db,keys).then(cb||none);
+			return self;
+		},
+		exists: function(cb){ db.exists(pre).then(cb); return self; },
+				
 		get token(){ return token; },
 		
-		get secret(){ return g().secret; },
+		get_secret: function(cb){ g('secret',cb); return self; },
 		set secret(v){ s('secret',v); },
 		
-		get name(){ return g().name; },
+		get_name: function(cb){ g('name',cb); return self; },
 		set name(v){ s('name',v); },
 		
-		get connected(){ return g().connected; },
+		get_connected: function(cb){ g('connected',cb); return self; },
 		set connected(v){ s('connected',v); },
 		
-		get sockets(){ return g().sockets; },
-		set sockets(v){ s('sockets',v); },
-		add_socket: function(id){
-			var sockets = g().sockets;
-			if(sockets.indexOf(id)==-1){
-				sockets.push(id);
-				s('sockets', sockets);
-			}
-		},
-		remove_socket: function(id){
-			var sockets = g().sockets,
-				kept = [];
-			for(var i=0;i<sockets.length;i++){
-				if(sockets[i]!=id){
-					kept.push(sockets[i]);
+		get_sockets: function(cb){ g('sockets',split(cb)); return self; },
+		set sockets(v){ s('sockets',v.join(j)); },
+		add_socket: function(id,cb){
+			this.get_sockets(function(sockets){
+				if(sockets.indexOf(id)==-1){
+					sockets.push(id);
+					s('sockets', sockets.join(j));
 				}
-			}
-			s('sockets', kept);
+				(cb||none)(sockets);
+			});
+			return self;
+		},
+		remove_socket: function(id, cb){
+			this.get_sockets(function(sockets){
+				var kept = [];
+				for(var i=0;i<sockets.length;i++){
+					if(sockets[i]!=id){
+						kept.push(sockets[i]);
+					}
+				}
+				s('sockets', kept.join(j));
+				(cb||none)(kept);
+			});
+			return self;
 		},
 		
-		get call_requests(){ return g().call_requests; },
-		set call_requests(v){ s('call_requests',v); },
-		add_call_request: function(id){
-			var call_requests = g().call_requests;
-			if(call_requests.indexOf(id)==-1){
-				call_requests.push(id);
-				s('call_requests', call_requests);
-			}
+		get_call_requests: function(cb){ g("call_requests", split(cb)); return self; },
+		set call_requests(v){ s('call_requests',v.join(j)); },
+		add_call_request: function(id,cb){
+			this.get_call_requests(function(call_requests){
+				if(call_requests.indexOf(id)==-1){
+					call_requests.push(id);
+					s('call_requests', call_requests.join(j));
+				}
+				(cb||none)(call_requests);
+			});
+			return self;
 		},
 		
-		get conversations(){ return g().conversations; },
-		set conversations(v){ s('conversations',v); },
-		add_conversation: function(id){
-			var conversations = g().conversations;
-			if(conversations.indexOf(id)==-1){
-				conversations.push(id);
-				s('conversations', conversations);
-			}
+		get_conversations: function(cb){ g('conversations', split(cb)); return self; },
+		set conversations(v){ s('conversations',v.join(k)); },
+		add_conversation: function(id,cb){
+			this.get_conversations(function(conversations){
+				if(conversations.indexOf(id)==-1){
+					conversations.push(id);
+					s('conversations', conversations.join(j));
+				}
+				(cb||none)(conversations);
+			});
+			return self;
 		}
 	};
+	return self;
 };
-dao.operator.create = function(token, secret, name){
-	var operator = {
-		'token': token,
-		'secret': secret,
-		'name': name||null,
-		connected: false,
-		sockets: [],
-		call_requests: [],
-		conversations: []
-	};
-	delete operators[token];
-	return operators[token] = operator;
-};
-dao.operator.save = function(token, operator){
-	if(!operator && token.token){
-		operator = token;
-		token = operator.token;
-	}
-	delete operators[token];
-	return operators[token] = operator;
-};
-dao.operator.get = function(operator){
-	if(!operator) return null;
-	var token = (typeof operator == "string")?operator:operator.token;
-	if(token){
-		return dao.operator.getByToken(token);
-	}
-	return null;
-}
-dao.operator.getByToken = function(token){
-	if(token === undefined){
-		return null;
-	}
+dao.chatter = function(token){
 	if(token.token){
 		token = token.token;
 	}
-	var found = operators[token];
-	return found === undefined ? null : found;
-};
-dao.operator.getById = function(secret){
-	var found = [];
-	
-	for(var i in operators){
-		if(operators[i].secret === secret){
-			found.push(operators[i]);
-		}
-	}
-	
-	return found.length === 0 ? null : found;
-};
-dao.operator.remove = function(token, secret){
-	if(secret !== undefined){
-		var remainder = {};
-		for(var i in operators){
-			if(operators[i].secret !== secret){
-				remainder[i] = operators[i];
-			}
-		}
-		operators = remainder;
-	}else{
-		delete operators[token];
-	}
-};
-dao.operator.exists = function(token){
-	return !!operators[token];
-};
-dao.operator.search = function(query){
-	for(var i in operators){
-		if(query(operators[i])){
-			return dao.operator.use(i);
-		}
-	}
-	return null;
-};
-
-
-dao.chatter.use = function(token){
-	if(token.token){
-		token = token.token;
-	}
-	if(typeof token != "string" || !dao.chatter.exists(token)){
+	if(typeof token != "string"){
 		return null;
 	}
-	function g(){
-		return chatters[token];
+	var pre = "chatter:"+token+":",
+		j = "|";
+	function none(){};
+	function split(cb){
+		return function(v){ v = v==""?[]:v.split(j); (cb||none)(v); };
 	}
-	function s(i, v){
-		chatters[token][i] = v;
+	function g(key, cb){
+		cb = cb || none;
+		db.get(pre+key).then(function(v){
+			if(v=="null")
+				v = null;
+			if(v=="undefined")
+				v = undefined;
+			if(v=="true")
+				v = true;
+			if(v=="false")
+				v = false;
+			if(typeof v == "string" && v!="" && parseInt(v)!=NaN && !/[^0-9]+/.test(v))
+				v = parseInt(v);
+			if(typeof v == "string" && v!="" && parseFloat(v)!=NaN && !/[^0-9|.]+/.test(v))
+				v = parseFloat(v);
+			cb(v);
+		});
 	}
-	return {
-		get chatter(){ return g(); },
-		set chatter(v){ chatter[token] = v; },
-		
+	function s(key, value){
+		db.set(pre+key, value);
+	}
+	var self = {
+		create: function(secret, name, ops, convo_token){
+			var c = {};
+			c[pre] = token;
+			c[pre+'secret'] = secret;
+			c[pre+'name'] = name||"";
+			c[pre+'connected'] = false;
+			c[pre+'sockets'] = "";
+			c[pre+'operators'] = (ops||[]).join(j);
+			c[pre+'call_accepted'] = false;
+			c[pre+'call_declined'] = false;
+			c[pre+'conversation_token'] = convo_token||null;
+			c[pre+'chatting_with'] = null;
+			db.mset(c);
+			return self;
+		},
+		remove: function(cb){
+			var keys = [
+				pre, 
+				pre+'secret',
+				pre+'name',
+				pre+'connected',
+				pre+'sockets',
+				pre+'operators',
+				pre+'call_accepted',
+				pre+'call_declined',
+				pre+'conversation_token',
+				pre+'chatting_with'];
+			db.del.apply(db,keys).then(cb||none);
+			return self;
+		},
+		exists: function(cb){ db.exists(pre).then(cb); return self; },
+				
 		get token(){ return token; },
 		
-		get secret(){ return g().secret; },
+		get_secret: function(cb){ g('secret',cb); return self; },
 		set secret(v){ s('secret',v); },
 		
-		get name(){ return g().name; },
+		get_name: function(cb){ g('name',cb); return self; },
 		set name(v){ s('name',v); },
 		
-		get connected(){ return g().connected; },
+		get_connected: function(cb){ g('connected',cb); return self; },
 		set connected(v){ s('connected',v); },
 		
-		get conversation_token(){ return g().conversation_token; },
-		set conversation_token(v){ s('conversation_token',v); },
-		
-		get call_accepted(){ return g().call_accepted; },
+		get_call_accepted: function(cb){ g('call_accepted',cb); return self; },
 		set call_accepted(v){ s('call_accepted',v); },
 		
-		get call_declined(){ return g().call_declined; },
+		get_call_declined: function(cb){ g('call_declined',cb); return self; },
 		set call_declined(v){ s('call_declined',v); },
 		
-		get chatting_with(){ return g().chatting_with; },
+		get_conversation_token: function(cb){ g('conversation_token',cb); return self; },
+		set conversation_token(v){ s('conversation_token',v); },
+		
+		get_chatting_with: function(cb){ g('chatting_with',cb); return self; },
 		set chatting_with(v){ s('chatting_with',v); },
 		
-		get sockets(){ return g().sockets; },
-		set sockets(v){ s('sockets',v); },
-		add_socket: function(id){
-			var sockets = g().sockets;
-			if(sockets.indexOf(id)==-1){
-				sockets.push(id);
-				s('sockets', sockets);
-			}
-		},
-		remove_socket: function(id){
-			var sockets = g().sockets,
-				kept = [];
-			for(var i=0;i<sockets.length;i++){
-				if(sockets[i]!=id){
-					kept.push(sockets[i]);
+		get_sockets: function(cb){ g('sockets',split(cb)); return self; },
+		set sockets(v){ s('sockets',v.join(j)); },
+		add_socket: function(id,cb){
+			this.get_sockets(function(sockets){
+				if(sockets.indexOf(id)==-1){
+					sockets.push(id);
+					s('sockets', sockets.join(j));
 				}
-			}
-			s('sockets', kept);
+				(cb||none)(sockets);
+			});
+			return self;
+		},
+		remove_socket: function(id, cb){
+			this.get_sockets(function(sockets){
+				var kept = [];
+				for(var i=0;i<sockets.length;i++){
+					if(sockets[i]!=id){
+						kept.push(sockets[i]);
+					}
+				}
+				s('sockets', kept.join(j));
+				(cb||none)(kept);
+			});
+			return self;
 		},
 		
-		get operators(){ return g().operators; },
-		set operators(v){ s('operators',v); },
-		add_operator: function(id){
-			var operators = g().operators;
-			if(operators.indexOf(id)==-1){
-				operators.push(id);
-				s('operators', operators);
-			}
+		get_operators: function(cb){ g("operators",split(cb)); return self; },
+		set operators(v){ s('operators',v.join(j)); },
+		add_operator: function(id,cb){
+			this.get_operators(function(operators){
+				if(operators.indexOf(id)==-1){
+					operators.push(id);
+					s('operators', operators.join(j));
+				}
+				(cb||none)(operators);
+			});
+			return self;
+		},
+		remove_operator: function(id, cb){
+			this.get_operators(function(operators){
+				var kept = [];
+				for(var i=0;i<operators.length;i++){
+					if(operators[i]!=id){
+						kept.push(operators[i]);
+					}
+				}
+				s('operators', operators.join(j));
+				(cb||none)(operators);
+			});
+			return self;
 		}
 	};
-};
-dao.chatter.create = function(token, secret, name, ops, convo_token){
-	var chatter = {
-		'token': token,
-		'secret': secret,
-		'name': name||null,
-		operators: ops||[],
-		conversation_token: convo_token||null,
-		call_accepted: false,
-		call_declined: false,
-		chatting_with: null,
-		connected: false,
-		sockets: []
-	};
-	delete chatters[token];
-	return chatters[token] = chatter;
-};
-dao.chatter.exists = function(token){
-	return !!chatters[token];
-};
-dao.chatter.save = function(token, chatter){
-	if(!chatter && token.token){
-		chatter = token;
-		token = chatter.token;
-	}
-	delete chatters[token];
-	return chatters[token] = chatter;
-};
-dao.chatter.get = function(chatter){
-	if(!chatter) return null;
-	var token = (typeof chatter == "string")?chatter:chatter.token;
-	if(token){
-		return dao.chatter.getByToken(token);
-	}
-	return null;
-}
-dao.chatter.getByToken = function(token){
-	if(token === undefined){
-		return null;
-	}
-	if(token.token){
-		token = token.token;
-	}
-	var found = chatters[token];
-	return found === undefined ? null : found;
-};
-dao.chatter.getById = function(secret){
-	var found = [];
-	
-	for(var i in chatters){
-		if(chatters[i].secret === secret){
-			found.push(chatters[i]);
-		}
-	}
-	
-	return found.length === 0 ? null : found;
+	return self;
 };
 dao.chatter.getByConversationToken = function(token){
 	return dao.chatter.search(function(chatter){
 		return chatter.conversation_token == token;
 	});
-};
-dao.chatter.remove = function(token, secret){
-	if(secret !== undefined){
-		var remainder = {};
-		for(var i in chatters){
-			if(chatters[i].secret !== secret){
-				remainder[i] = chatters[i];
-			}
-		}
-		chatters = remainder;
-	}else{
-		delete chatters[token];
-	}
 };
 dao.chatter.search = function(query){
 	for(var i in chatters){
@@ -304,9 +285,5 @@ dao.chatter.search = function(query){
 	}
 	return null;
 };
-
-dao.use = {
-	operator: dao.operator.use,
-	chatter: dao.chatter.use
-}
+dao.db = db;
 module.exports = dao;

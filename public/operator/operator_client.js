@@ -116,7 +116,7 @@ chat.show_typing_notice = function(){
 		chat.typing_notice_before = $("#typing")[0].innerHTML;
 	}
 	$("#typing").html(chat.chatter_name+" is typing ...").show();
-	//chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 2000);
+	chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 15000);
 }
 
 chat.hide_typing_notice = function(){
@@ -265,8 +265,8 @@ receive.auth_error = function(error) {
 };
 
 receive.call_request = function(data) {
-	socket.emit("call_received", data.conversation_token);
-    var token = data.conversation_token,
+	socket.emit("call_received", data.chatter_token);
+    var token = data.chatter_token,
     dialog = $("#call_dialog"),
     profile = $('<div class="call_profile"></div>'),
     accept = $('<input type="button" value="Accept" id="accept_call">')
@@ -356,21 +356,24 @@ send.decline_call = function(token) {
 
 send.message_read = function() {
     socket.emit("message_read", {
-        conversation_token: chat.conversation_token
+        conversation_token: chat.conversation_token,
+		chatter_token: chat.chatter_token
     });
 };
 
 send.start_typing = function() {
     socket.emit("typing", {
         conversation_token: chat.conversation_token,
-        typing: true
+        typing: true,
+		chatter_token: chat.chatter_token
     });
 };
 
 send.stop_typing = function() {
     socket.emit("typing", {
         conversation_token: chat.conversation_token,
-        typing: false
+        typing: false,
+		chatter_token: chat.chatter_token
     });
 };
 
@@ -379,7 +382,8 @@ send.new_message = function(message) {
 	chat.hide_message_seen_notice();
     socket.emit("new_message", {
         "message": message,
-        conversation_token: chat.conversation_token
+        conversation_token: chat.conversation_token,
+		chatter_token: chat.chatter_token
     });
 };
 

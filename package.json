@@ -17,6 +17,7 @@
 	"dependencies": {
 		"socket.io": "0.9.x",
 		"redis": "0.7.x",
+		"then-redis": "0.3.x",
 		"express": "3.x"
 	}
 

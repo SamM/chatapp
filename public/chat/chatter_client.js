@@ -60,7 +60,7 @@ chat.show_typing_notice = function(){
 		chat.typing_notice_before = $("#typing")[0].innerHTML;
 	}
 	$("#typing").html(chat.operator_name+" is typing ...").show();
-	//chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 2000);
+	chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 15000);
 }
 
 chat.hide_typing_notice = function(){
@@ -306,7 +306,7 @@ function setup() {
             },
             complete: function(data, status) {
                 console.log(data, status)
-                send.auth();
+				setTimeout(send.auth, 2000);
             },
             dataType: "application/json; charset=UTF-8"
         });

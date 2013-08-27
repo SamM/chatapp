@@ -25,23 +25,22 @@ env.routes = require("./routes")(env);
 // Dummy operators
 
 function createOperator(secret, token, name){
-	var operator = env.dao.operator.create(token, secret, name);
-	operator.connected = false;
-	operator.socket = null;
-	operator.call_requests = [];
-	operator.conversations = [];
-	env.dao.operator.save(operator);
+	var operator = env.dao.operator(token).create(secret, name);
 }
 
 createOperator("a", "1", "Jim");
 createOperator("b", "2", "Bob");
 createOperator("c", "3", "Jill");
-createOperator("operatorSecret", "abc", "Operator Guy");
+env.dao.operator("abc").exists(function(exists){
+	if(!exists){
+		createOperator("operatorSecret", "abc", "Operator Guy");
+	}
+});
 
-// Dummy chatters
+// Remove test chatter
 
-function createChatter(secret, token, name){
-	env.dao.chatter.create(token, secret, name);
-}
+env.dao.chatter("123").remove(function(i){
+	console.log("Dummy chatter removed", i)
+});
 
 console.log("Server listening on port 8080 >> http://localhost:8080");
