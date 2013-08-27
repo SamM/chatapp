@@ -1,6 +1,8 @@
 var auth = {
     "secret": "operatorSecret",
-    "token": "abc"
+    "token": "abc",
+	"time": (new Date()).getTime(),
+	"location": window.location.href
 },
 socket = null,
 receive = {},
@@ -95,7 +97,7 @@ chat.openChat = function(config) {
     chat.build();
     chat.chatting = true;
     // TODO: Load previous conversation messages
-    chat.add_notice("You are now chatting with <strong>" + config.name + "</strong>!", "positive");
+    chat.add_notice("<strong>" + config.name + "</strong> has connected!", "positive connection_notice");
     chat.conversation_token = config.conversation_token;
     chat.chatter_name = config.name;
     chat.chatter_token = config.chatter_token;
@@ -289,6 +291,16 @@ receive.call_request = function(data) {
 
 receive.call_connected = function(data) {
     chat.openChat(data);
+};
+
+receive.chatter_reconnect = function(data) {
+	if(data.connections == 1)
+    	chat.add_notice("<strong>" + chat.chatter_name + "</strong> has reconnected!", "positive reconnection_notice");
+};
+
+receive.chatter_disconnect = function(data) {
+	if(data.connections == 0)
+    	chat.add_notice("<strong>" + chat.chatter_name + "</strong> has disconnected!", "disconnection_notice");
 };
 
 receive.call_declined = function(data) {

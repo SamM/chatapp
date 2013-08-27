@@ -1,5 +1,3 @@
-Handle disconnects
-Clear up sockets on server close
 Do something if operator doesn't receive a call_request in 2 seconds
 Chatter call declined notice
 Allow multiple conversations for operator

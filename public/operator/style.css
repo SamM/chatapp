@@ -3,7 +3,7 @@ body {
 	padding: 0;
 	font-family: sans-serif;
 	position: relative;
-	background-color: #EEEEEE;
+	background-color: #CCCCCC;
 }
 
 #modal{
@@ -78,11 +78,10 @@ h1{
 	position: fixed;
 	width: 250px;
 	height: auto;
-	left: 0px;
-	top: 120px;
-	bottom: 30px;
-	border-top-right-radius: 10px 10px;
-	border-bottom-right-radius: 10px 10px;
+	left: 10px;
+	top: 100px;
+	bottom: 10px;
+	border-radius: 10px 10px;
 	background-color: white;
 }
 
@@ -90,12 +89,11 @@ h1{
 	position: fixed;
 	width: auto;
 	height: auto;
-	left: 265px;
-	right: 0px;
-	top: 120px;
-	bottom: 30px;
-	border-top-left-radius: 10px 10px;
-	border-bottom-left-radius: 10px 10px;
+	left: 270px;
+	right: 10px;
+	top: 100px;
+	bottom: 10px;
+	border-radius: 10px 10px;
 	background-color: white;
 }
 
@@ -104,7 +102,7 @@ h1{
 	width: auto;
 	height: auto;
 	left: 0;
-	right: 40%;
+	right: 50%;
 	top: 0;
 	bottom: 0;
 }
@@ -113,13 +111,12 @@ h1{
 	position: absolute;
 	width: auto;
 	height: auto;
-	left: 60%;
+	left: 50%;
 	right: 0;
 	top: 0;
 	bottom: 0;
-	background-color: #AAAAAA;
-	border-top-left-radius: 10px 10px;
-	border-bottom-left-radius: 10px 10px;
+	background-color: #CCCCCC;
+	border-radius: 10px 10px;
 }
 #scroll{
 	position: absolute;
@@ -164,13 +161,14 @@ h1{
 	left: 10px;
 	right: 105px;
 	top: 0;
-	bottom: 7px;
+	bottom: 10px;
 	border-radius: 5px 5px;
 	border: 2px solid #777777;
 }
 #message_input{
 	border:0;
 	margin:0;
+	padding:0;
 	border-radius: 5px 5px;
 	width: 100%;
 	height: 100%;
@@ -183,12 +181,12 @@ h1{
 }
 #send{
 	position: absolute;
-	width: 90px;
+	width: 85px;
 	right: 10px;
-	top: 2px;
-	height: 86px;
+	top: 0px;
+	height: 85px;
 	border: 4px outset #EEEEEE;
-	background-color: #DDDDDD;
+	background-color: #CCCCCC;
 	font-size: 20px;
 	border-radius: 5px 5px;
 }

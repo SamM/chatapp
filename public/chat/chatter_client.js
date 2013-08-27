@@ -1,6 +1,8 @@
 var auth = {
     "secret": "chatterSecret",
-    "token": "123"
+    "token": "123",
+	"time": (new Date()).getTime(),
+	"location": window.location.href
 },
 socket = null,
 receive = {},
@@ -197,11 +199,23 @@ receive.auth_error = function(error) {
 
 receive.call_connected = function(data) {
     chat.operator_name = data.name;
-    chat.add_notice("You are now chatting with <strong>" + chat.operator_name + "</strong>!", 'positive');
+    chat.add_notice("<strong>" + chat.operator_name + "</strong> has connected!", 'positive connection_notice');
     $(".connecting_notice").fadeOut(1000,
     function() {
         $(this).remove();
     });
+};
+
+receive.operator_reconnect = function(data) {
+	if(data.connections == 1){
+		chat.add_notice("<strong>" + chat.operator_name + "</strong> has reconnected!", "positive reconnection_notice");
+	}
+};
+
+receive.operator_disconnect = function(data) {
+	if(data.connections == 0){
+		chat.add_notice("<strong>" + chat.operator_name + "</strong> has disconnected!", "disconnection_notice");
+	}
 };
 
 receive.self_message = function(data) {
