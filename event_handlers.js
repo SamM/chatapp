@@ -70,7 +70,7 @@ module.exports = function(env){
 				})
 			}
 		});
-	}
+	};
 	
 	// Rails to Node
 	
@@ -420,10 +420,12 @@ module.exports = function(env){
 				socket.emit("auth_success", {});
 				
 				operator.get_conversations(function(conversations){
+					log('Operator '+operator.token+' is currently in '+conversations.length+' conversation'+(conversations.length==1?'':'s'));
 					if(conversations.length){
 						conversations.forEach(function(token){
 							var chatter = dao.chatter(token);
 							chatter.exists(function(exists){
+								log('Chatter '+token+' does'+(exists?'':' not')+' exist');
 								if(exists){
 									handle.notify_operator_of_chatter(operator, chatter, socket.id);
 									handle.notify_chatter_of_operator_reconnect(chatter, operator);
@@ -551,7 +553,7 @@ module.exports = function(env){
 	
 	handle.notify_operator_of_chatter = function(operator, chatter, socket_id){
 		log("Notifying operator of chatter:\n\t", operator.token, chatter.token)
-		operator.add_conversation(chatter.token);
+		operator.add_conversation(chatter.token, function(c){ log('Add conversation: ',c); });
 		get_sockets("operator",operator, function(sockets){
 			if(sockets.length){
 				chatter.get_conversation_token(function(conversation_token){

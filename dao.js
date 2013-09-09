@@ -1,6 +1,14 @@
 var redis = require('then-redis'),
 	db = redis.createClient("redis://redistogo:d7527215d8bd631e7fbe6a8110a7a068@koi.redistogo.com:9715/"),
-	dao = {};
+	dao = {},
+	j = "|";
+	function none(){};
+	function join(arr){
+		return "["+arr.join(j)+"]";
+	}
+	function split(cb){
+		return function(v,k){ (cb||none)(v==""?[]:(v=="[]"?[]:v.slice(1,-1).split(j))); };
+	}
 
 dao.operator = function(token){
 	if(token.token){
@@ -9,12 +17,7 @@ dao.operator = function(token){
 	if(typeof token != "string"){
 		return null;
 	}
-	var pre = "operator:"+token+":",
-		j = "|";
-	function none(){};
-	function split(cb){
-		return function(v){ v = v==""?[]:v.split(j); (cb||none)(v); };
-	}
+	var pre = "operator:"+token+":";
 	function g(key, cb){
 		cb = cb || none;
 		db.get(pre+key).then(function(v){
@@ -30,7 +33,11 @@ dao.operator = function(token){
 				v = parseInt(v);
 			if(typeof v == "string" && v!="" && parseFloat(v)!=NaN && !/[^0-9|.]+/.test(v))
 				v = parseFloat(v);
-			cb(v);
+			try{
+				cb(v, key);
+			}catch(e){
+				console.log('Get',pre+key,'- Callback ERROR:',e);
+			}
 		});
 	}
 	function s(key, value){
@@ -43,9 +50,9 @@ dao.operator = function(token){
 			operator[pre+'secret'] = secret;
 			operator[pre+'name'] = name||null;
 			operator[pre+'connected'] = false;
-			operator[pre+'sockets'] = "";
-			operator[pre+'call_requests'] = "";
-			operator[pre+'conversations'] = "";
+			operator[pre+'sockets'] = "[]";
+			operator[pre+'call_requests'] = "[]";
+			operator[pre+'conversations'] = "[]";
 			db.mset(operator);
 			return self;
 		},
@@ -75,12 +82,12 @@ dao.operator = function(token){
 		set connected(v){ s('connected',v); },
 		
 		get_sockets: function(cb){ g('sockets',split(cb)); return self; },
-		set sockets(v){ s('sockets',v.join(j)); },
+		set sockets(v){ s('sockets',join(v)); },
 		add_socket: function(id,cb){
 			this.get_sockets(function(sockets){
 				if(sockets.indexOf(id)==-1){
 					sockets.push(id);
-					s('sockets', sockets.join(j));
+					s('sockets', join(sockets));
 				}
 				(cb||none)(sockets);
 			});
@@ -94,32 +101,32 @@ dao.operator = function(token){
 						kept.push(sockets[i]);
 					}
 				}
-				s('sockets', kept.join(j));
+				s('sockets', join(kept));
 				(cb||none)(kept);
 			});
 			return self;
 		},
 		
 		get_call_requests: function(cb){ g("call_requests", split(cb)); return self; },
-		set call_requests(v){ s('call_requests',v.join(j)); },
+		set call_requests(v){ s('call_requests',join(v)); },
 		add_call_request: function(id,cb){
 			this.get_call_requests(function(call_requests){
 				if(call_requests.indexOf(id)==-1){
 					call_requests.push(id);
-					s('call_requests', call_requests.join(j));
+					s('call_requests', join(call_requests));
 				}
 				(cb||none)(call_requests);
 			});
 			return self;
 		},
 		
-		get_conversations: function(cb){ g('conversations', split(cb)); return self; },
-		set conversations(v){ s('conversations',v.join(k)); },
+		get_conversations: function(cb){ g('conversations',split(cb)); return self; },
+		set conversations(v){ s('conversations', join(v)); },
 		add_conversation: function(id,cb){
 			this.get_conversations(function(conversations){
 				if(conversations.indexOf(id)==-1){
 					conversations.push(id);
-					s('conversations', conversations.join(j));
+					s('conversations', join(conversations));
 				}
 				(cb||none)(conversations);
 			});
@@ -135,12 +142,8 @@ dao.chatter = function(token){
 	if(typeof token != "string"){
 		return null;
 	}
-	var pre = "chatter:"+token+":",
-		j = "|";
-	function none(){};
-	function split(cb){
-		return function(v){ v = v==""?[]:v.split(j); (cb||none)(v); };
-	}
+	var pre = "chatter:"+token+":";
+
 	function g(key, cb){
 		cb = cb || none;
 		db.get(pre+key).then(function(v){
@@ -169,8 +172,8 @@ dao.chatter = function(token){
 			c[pre+'secret'] = secret;
 			c[pre+'name'] = name||"";
 			c[pre+'connected'] = false;
-			c[pre+'sockets'] = "";
-			c[pre+'operators'] = (ops||[]).join(j);
+			c[pre+'sockets'] = "[]";
+			c[pre+'operators'] = join(ops||[]);
 			c[pre+'call_accepted'] = false;
 			c[pre+'call_declined'] = false;
 			c[pre+'conversation_token'] = convo_token||null;
@@ -219,12 +222,12 @@ dao.chatter = function(token){
 		set chatting_with(v){ s('chatting_with',v); },
 		
 		get_sockets: function(cb){ g('sockets',split(cb)); return self; },
-		set sockets(v){ s('sockets',v.join(j)); },
+		set sockets(v){ s('sockets',join(v)); },
 		add_socket: function(id,cb){
 			this.get_sockets(function(sockets){
 				if(sockets.indexOf(id)==-1){
 					sockets.push(id);
-					s('sockets', sockets.join(j));
+					s('sockets', join(sockets));
 				}
 				(cb||none)(sockets);
 			});
@@ -238,19 +241,19 @@ dao.chatter = function(token){
 						kept.push(sockets[i]);
 					}
 				}
-				s('sockets', kept.join(j));
+				s('sockets', join(kept));
 				(cb||none)(kept);
 			});
 			return self;
 		},
 		
 		get_operators: function(cb){ g("operators",split(cb)); return self; },
-		set operators(v){ s('operators',v.join(j)); },
+		set operators(v){ s('operators', join(v)); },
 		add_operator: function(id,cb){
 			this.get_operators(function(operators){
 				if(operators.indexOf(id)==-1){
 					operators.push(id);
-					s('operators', operators.join(j));
+					s('operators', join(operators));
 				}
 				(cb||none)(operators);
 			});
@@ -264,7 +267,7 @@ dao.chatter = function(token){
 						kept.push(operators[i]);
 					}
 				}
-				s('operators', operators.join(j));
+				s('operators', join(operators));
 				(cb||none)(operators);
 			});
 			return self;

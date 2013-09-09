@@ -42,6 +42,7 @@ chat.unread_messages_here = false;
 chat.unread_messages_there = false;
 chat.chatting = false;
 chat.conversation_token = null;
+chat.conversations = {};
 
 chat.add_notice = function(text, className) {
     className = className || "";
@@ -93,14 +94,39 @@ chat.scroll_messages = function() {
     $("#scroll").scrollTop($("#scroll")[0].scrollHeight);
 }
 
+chat.addConversationButton = function(chatter_name, conversation_token){
+    var button = $("<li>"+chatter_name+"</li>").click(function(){ chat.showChat(conversation_token); });
+    $("#conversations").append(button);
+    return button;
+};
+
+chat.hideCurrentChat = function(){
+    if(chat.current_chat)
+        chat.hideChat(chat.current_chat);
+};
+
+chat.hideChat = function(conversation_token){
+    $("#"+conversation_token).hide();
+};
+
+chat.showChat = function(conversation_token){
+    chat.hideCurrentChat();
+    $("#"+conversation_token).show();
+    this.current_chat = conversation_token;
+};
+
 chat.openChat = function(config) {
-    chat.build();
+    var conversation = {};
+    conversation.screen = chat.build(conversation_token);
     chat.chatting = true;
     // TODO: Load previous conversation messages
     chat.add_notice("<strong>" + config.name + "</strong> has connected!", "positive connection_notice");
-    chat.conversation_token = config.conversation_token;
-    chat.chatter_name = config.name;
-    chat.chatter_token = config.chatter_token;
+    conversation.token = config.conversation_token;
+    conversation.chatter_name = config.name;
+    conversation.chatter_token = config.chatter_token;
+    conversation.button = chat.addConversationButton(config.name, config.converation_token);
+    chat.showChat(config.conversation_token);
+    chat.conversations[config.conversation_token] = conversation;
 }
 
 chat.closeChat = function() {
@@ -195,9 +221,10 @@ chat.hide_message_seen_notice = function(){
 	});
 };
 
-chat.build = function() {
-    var content = $("#content")
-    .html('<div id="display">asdg</div>')
+chat.build = function(conversation_token) {
+    var content = $("#content");
+    var chat_screen = $('<div id="'+conversation_token+'" class="chat_screen"></div>')
+    .append('<div id="display">asdg</div>')
     .append(
     $('<div id="chat"></div>')
     .append(
@@ -218,7 +245,9 @@ chat.build = function() {
     .append($('<input id="send" type="submit" value="Send">'))
     .submit(chat.inputSubmit)
     )
-    );
+    ).hide();
+    content.append(chat_screen);
+    return chat_screen;
 }
 
 chat.inputSubmit = function() {
