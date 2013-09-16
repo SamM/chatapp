@@ -79,12 +79,9 @@ module.exports = function(env){
 		log("Call Received:\n", body);
 		res.send(200);
 		var chatter = dao.chatter(body.token);
-		chatter.exists(function(exists){
-			if(!exists){
-				chatter.create(body.secret, body.name, body.operators, body.conversation_token);
-				handle.call_operators(chatter);
-			}
-		});		
+		
+		chatter.create(body.secret, body.name, body.operators, body.conversation_token);
+		handle.call_operators(chatter);
 	};
 	
 	handle.operator_login = function(req, res){

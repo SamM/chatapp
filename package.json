@@ -1,24 +1,26 @@
 {
 	"name": "WSChatServer",
-	"version": "0.1.0",
-	"scripts":{
-		"start": "node server.js"
+	"version": "0.1.0-1",
+	"scripts": {
+		"start": "node ./server.js"
 	},
 	"author": {
 		"name": "Sam Mulqueen",
 		"email": "sammulqueen.nz@gmail.com"
 	},
-	"bin": "./server.js",
-	"repository" :
-	{
-		"type" : "git",
-		"url" : "https://github.com/SamM/chatapp.git"
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/SamM/chatapp.git"
 	},
+	"main": "",
+	"analyze": false,
 	"dependencies": {
 		"socket.io": "0.9.x",
-		"redis": "0.7.x",
 		"then-redis": "0.3.x",
 		"express": "3.x"
+	},
+	"subdomain": "godchat-chat",
+	"engines": {
+		"node": "0.10.x"
 	}
-
 }

@@ -9,7 +9,7 @@ env.server = require('http').createServer(env.app);
 env.io = require('socket.io').listen(env.server);
 env.io.set('log level', 1);
 
-env.server.listen(8080);
+env.server.listen(process.env.PORT ||8080);
 
 app.configure(function(){
 	app.use(env.express.static(__dirname + '/public'));
