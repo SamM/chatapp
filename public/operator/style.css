@@ -97,7 +97,7 @@ h1{
 	background-color: white;
 }
 
-#display{
+.display{
 	position: absolute;
 	width: auto;
 	height: auto;
@@ -107,7 +107,7 @@ h1{
 	bottom: 0;
 }
 
-#chat{
+.chat{
 	position: absolute;
 	width: auto;
 	height: auto;
@@ -118,7 +118,7 @@ h1{
 	background-color: #CCCCCC;
 	border-radius: 10px 10px;
 }
-#scroll{
+.scroll{
 	position: absolute;
 	width: auto;
 	height: auto;
@@ -131,10 +131,10 @@ h1{
 	overflow-y: auto;
 	background-color: #FFFFFF;
 }
-#messages{
+.messages{
 	padding: 15px;
 }
-#typing {
+.typing {
 	position: absolute;
 	width: auto;
 	left: 15px;
@@ -144,7 +144,7 @@ h1{
 	font-size: 14px;
 	display: none;
 }
-#input{
+.input{
 	position: absolute;
 	width: auto;
 	height: 95px;
@@ -165,7 +165,7 @@ h1{
 	border-radius: 5px 5px;
 	border: 2px solid #777777;
 }
-#message_input{
+.message_input{
 	border:0;
 	margin:0;
 	padding:0;
@@ -176,10 +176,10 @@ h1{
 	font-size: 15px;
 	background-color: #EEEEEE;
 }
-#message_input:focus{
+.message_input:focus{
 	background-color: white;
 }
-#send{
+.send{
 	position: absolute;
 	width: 85px;
 	right: 10px;
@@ -190,10 +190,10 @@ h1{
 	font-size: 20px;
 	border-radius: 5px 5px;
 }
-#send:hover{
+.send:hover{
 	background-color: #E3E3E3;
 }
-#send:active{
+.send:active{
 	border-style: inset;
 }
 

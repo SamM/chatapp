@@ -38,24 +38,22 @@ server.reconnecting = false;
 
 // Chat
 chat.typing_timeout = null;
-chat.unread_messages_here = false;
-chat.unread_messages_there = false;
 chat.chatting = false;
-chat.conversation_token = null;
 chat.conversations = {};
+chat.convoCount = 0;
 
-chat.add_notice = function(text, className) {
+chat.add_notice = function(conversation_token, text, className) {
     className = className || "";
     var notice = $('<div class="notice ' + className + '">' + text + '</div>');
-    $("#messages").append(notice);
-    chat.scroll_messages();
+    chat.conversation(conversation_token).screen.find(".messages").append(notice);
+    chat.scroll_messages(conversation_token);
     return notice;
 }
-chat.add_message = function(username, text, className) {
+chat.add_message = function(conversation_token, username, text, className) {
     className = className || "";
     var message = $('<div class="message ' + className + '"><span class="username">' + username + ':</span>' + text + '</div>');
-    $("#messages").append(message);
-    chat.scroll_messages();
+    chat.conversation(conversation_token).screen.find(".messages").append(message);
+    chat.scroll_messages(conversation_token);
     return message;
 }
 
@@ -67,7 +65,7 @@ chat.start_typing = function() {
         send.start_typing();
     }
     chat.typing_timeout = setTimeout(chat.stop_typing, 1000);
-    $("#message_input").css("border-color", "red");
+    chat.conversation().screen.find(".message_input").css("border-color", "red");
 }
 
 chat.stop_typing = function() {
@@ -76,22 +74,25 @@ chat.stop_typing = function() {
     	chat.typing_timeout = null;
     	send.stop_typing();
 	}
-    $("#message_input").css("border-color", "#777777");
+    chat.conversation().screen.find(".message_input").css("border-color", "#777777");
 }
 
 chat.user_activity = function() {
 	if(title_interval){
 		resetTitle();
 	}
-    if (chat.unread_messages_here) {
-        send.message_read();
-        chat.unread_messages_here = false;
+    var convo = chat.conversation();
+    if (convo.unread_messages_here) {
+        send.message_read(convo.token);
+        convo.unread_messages_here = false;
     }
-    chat.scroll_messages();
+    chat.scroll_messages(convo.token);
 }
 
-chat.scroll_messages = function() {
-    $("#scroll").scrollTop($("#scroll")[0].scrollHeight);
+chat.scroll_messages = function(token) {
+    var convo = chat.conversation(token);
+    var scroll = convo.screen.find(".scroll");
+    scroll.scrollTop(scroll[0].scrollHeight);
 }
 
 chat.addConversationButton = function(chatter_name, conversation_token){
@@ -116,50 +117,61 @@ chat.showChat = function(conversation_token){
 };
 
 chat.openChat = function(config) {
+    console.log(config);
     var conversation = {};
-    conversation.screen = chat.build(conversation_token);
-    chat.chatting = true;
-    // TODO: Load previous conversation messages
-    chat.add_notice("<strong>" + config.name + "</strong> has connected!", "positive connection_notice");
     conversation.token = config.conversation_token;
     conversation.chatter_name = config.name;
     conversation.chatter_token = config.chatter_token;
-    conversation.button = chat.addConversationButton(config.name, config.converation_token);
-    chat.showChat(config.conversation_token);
-    chat.conversations[config.conversation_token] = conversation;
+    conversation.button = chat.addConversationButton(conversation.chatter_name, conversation.token);
+    conversation.unread_messages_here = false;
+    conversation.unread_messages_there = false;
+    conversation.typing_notice_before = "";
+    conversation.typing_notice_timer = null;
+    conversation.typing_notice_fading = false;
+    conversation.screen = chat.build(conversation.token);
+    chat.conversations[conversation.token] = conversation;
+    chat.convoCount++;
+    chat.chatting = true;
+    // TODO: Load previous conversation messages
+    chat.add_notice(conversation.token, "<strong>" + conversation.chatter_name + "</strong> has connected!", "positive connection_notice");
+    chat.showChat(conversation.token);
 }
 
 chat.closeChat = function() {
-    chat.chatting = false;
+    chat.convoCount--;
+    if(chat.convoCount == 0){
+        chat.chatting = false;
+    }
 }
 
-chat.typing_notice_before = "";
-chat.typing_notice_timer = null;
-chat.typing_notice_fading = false;
-chat.show_typing_notice = function(){
-	chat.clear_typing_notice(true);
-	if(!chat.typing_notice_fading){
-		chat.typing_notice_before = $("#typing")[0].innerHTML;
+
+chat.show_typing_notice = function(token){
+    var convo = chat.conversation(token);
+	chat.clear_typing_notice(true, convo.token);
+	if(!convo.typing_notice_fading){
+		convo.typing_notice_before = convo.screen.find(".typing")[0].innerHTML;
 	}
-	$("#typing").html(chat.chatter_name+" is typing ...").show();
-	chat.typing_notice_timer = setTimeout(chat.hide_typing_notice, 15000);
+	convo.screen.find(".typing").html(chat.chatter_name+" is typing ...").show();
+	convo.typing_notice_timer = setTimeout(function(){chat.hide_typing_notice(convo.token);}, 15000);
 }
 
-chat.hide_typing_notice = function(){
-	chat.clear_typing_notice();
-	chat.typing_notice_fading = true;
-	var msg = chat.typing_notice_before||"";
-	$("#typing").fadeOut(400, function(){
+chat.hide_typing_notice = function(token){
+    var convo = chat.conversation(token);
+	chat.clear_typing_notice(token);
+	convo.typing_notice_fading = true;
+	var msg = convo.typing_notice_before||"";
+	convo.screen.find(".typing").fadeOut(400, function(){
 		$(this).html(msg).show();
-		chat.typing_notice_fading = false;
+		convo.typing_notice_fading = false;
 	});
 }
 
-chat.clear_typing_notice = function(reset){
-	if(chat.typing_notice_timer){
-		clearTimeout(chat.typing_notice_timer);
-		chat.typing_notice_timer = null;
-		if(reset){ $("#typing").html(chat.typing_notice_before||"").show(); }
+chat.clear_typing_notice = function(reset, token){
+    var convo = chat.conversation(token);
+	if(convo.typing_notice_timer){
+		clearTimeout(convo.typing_notice_timer);
+		convo.typing_notice_timer = null;
+		if(reset){ convo.screen.find(".typing").html(convo.typing_notice_before||"").show(); }
 	}
 }
 
@@ -211,12 +223,14 @@ function parseDate(date){
 	return str;
 }
 
-chat.show_message_seen_notice = function(timestamp){
-	$("#typing").html('Seen '+parseDate(timestamp));
+chat.show_message_seen_notice = function(token, timestamp){
+	var convo = chat.conversation(token);
+    convo.screen.find(".typing").html('Seen '+parseDate(timestamp));
 };
 
-chat.hide_message_seen_notice = function(){
-	$("#typing").fadeOut(400, function(){
+chat.hide_message_seen_notice = function(token){
+    var convo = chat.conversation(token);
+	convo.screen.find(".typing").fadeOut(400, function(){
 		$(this).html("").show();
 	});
 };
@@ -224,25 +238,25 @@ chat.hide_message_seen_notice = function(){
 chat.build = function(conversation_token) {
     var content = $("#content");
     var chat_screen = $('<div id="'+conversation_token+'" class="chat_screen"></div>')
-    .append('<div id="display">asdg</div>')
+    .append('<div class="display">asdg</div>')
     .append(
-    $('<div id="chat"></div>')
+    $('<div class="chat"></div>')
     .append(
-    $('<div id="scroll"></div>')
-    .append($('<div id="messages"></div>'))
+    $('<div class="scroll"></div>')
+    .append($('<div class="messages"></div>'))
     )
-	.append('<div id="typing"></div>')
+	.append('<div class="typing"></div>')
     .append(
-    $('<form id="input"></form>')
+    $('<form class="input"></form>')
     .append($('<div class="textarea_wrapper"></div>')
 		.append(
-			$('<textarea id="message_input"></textarea>')
+			$('<textarea class="message_input"></textarea>')
 		    .keydown(chat.inputKeyPress)
 		    .focus(chat.user_activity)
 		    .blur(chat.user_activity)
 	    )
 	)
-    .append($('<input id="send" type="submit" value="Send">'))
+    .append($('<input class="send" type="submit" value="Send">'))
     .submit(chat.inputSubmit)
     )
     ).hide();
@@ -250,13 +264,19 @@ chat.build = function(conversation_token) {
     return chat_screen;
 }
 
+chat.conversation = function(token){
+    return chat.conversations[token?token:chat.current_chat];
+}
+
 chat.inputSubmit = function() {
-	chat.stop_typing();
-    var message = $("#message_input").val();
+    var convo = chat.conversation(),
+        input = convo.screen.find(".message_input"),
+        message = input.val();
+    chat.stop_typing(convo.token);
     if (message.length) {
-        send.new_message(message);
+        send.new_message(convo.token, message);
     }
-    $("#message_input").val("").focus();
+    input.val("").focus();
     return false;
 }
 
@@ -266,7 +286,7 @@ chat.inputKeyPress = function(ev) {
         // Enter
         if (!ev.shiftKey) {
             // Shift >> New Line
-            $("#input").submit();
+            chat.conversation().screen.find('.input').submit();
             ev.preventDefault();
         }
     } else {
@@ -325,12 +345,12 @@ receive.call_connected = function(data) {
 
 receive.chatter_reconnect = function(data) {
 	if(data.connections == 1)
-    	chat.add_notice("<strong>" + chat.chatter_name + "</strong> has reconnected!", "positive reconnection_notice");
+    	chat.add_notice(data.conversation_token, "<strong>" + chat.chatter_name + "</strong> has reconnected!", "positive reconnection_notice");
 };
 
 receive.chatter_disconnect = function(data) {
 	if(data.connections == 0)
-    	chat.add_notice("<strong>" + chat.chatter_name + "</strong> has disconnected!", "disconnection_notice");
+    	chat.add_notice(data.conversation_token, "<strong>" + chat.chatter_name + "</strong> has disconnected!", "disconnection_notice");
 };
 
 receive.call_declined = function(data) {
@@ -338,18 +358,20 @@ receive.call_declined = function(data) {
 };
 
 receive.self_message = function(data) {
-    chat.add_message("You", data.message, "self");
+    chat.add_message(data.conversation_token, "You", data.message, "self");
 };
 
 receive.chatter_message = function(data) {
-    chat.add_message(chat.chatter_name, data.message, "other");
-	chat.unread_messages_here = true;
+    var convo = chat.conversation(data.conversation_token);
+    chat.add_message(data.conversation_token, convo.chatter_name, data.message, "other");
+    convo.unread_messages_here = true;
 };
 
 receive.message_seen = function(data) {
 	console.log("Messages seen by chatter");
-	chat.unread_messages_there = false;
-	chat.show_message_seen_notice(data.timestamp);
+    var convo = chat.conversation(data.conversation_token);
+	convo.unread_messages_there = false;
+	chat.show_message_seen_notice(convo.token, data.timestamp);
     
 };
 
@@ -362,10 +384,11 @@ receive.alert = function(data){
 }
 
 receive.typing = function(data) {
+    var convo = chat.conversation(data.conversation_token);
 	if(data.typing){
-		chat.show_typing_notice();
+		chat.show_typing_notice(convo.token);
 	}else{
-		chat.hide_typing_notice();
+		chat.hide_typing_notice(convo.token);
 	}
     console.log("Chatter has " + (data.typing ? "started": "stopped") + " typing");
 };
@@ -384,35 +407,39 @@ send.decline_call = function(token) {
 };
 
 send.message_read = function() {
+    var convo = chat.conversation();
     socket.emit("message_read", {
-        conversation_token: chat.conversation_token,
-		chatter_token: chat.chatter_token
+        conversation_token: convo.token,
+		chatter_token: convo.chatter_token
     });
 };
 
-send.start_typing = function() {
+send.start_typing = function(token) {
+    var convo = chat.conversation();
     socket.emit("typing", {
-        conversation_token: chat.conversation_token,
+        conversation_token: convo.token,
         typing: true,
-		chatter_token: chat.chatter_token
+		chatter_token: convo.chatter_token
     });
 };
 
-send.stop_typing = function() {
+send.stop_typing = function(token) {
+    var convo = chat.conversation(token);
     socket.emit("typing", {
-        conversation_token: chat.conversation_token,
+        conversation_token: convo.token,
         typing: false,
-		chatter_token: chat.chatter_token
+		chatter_token: convo.chatter_token
     });
 };
 
-send.new_message = function(message) {
-	chat.unread_messages_there = true;
-	chat.hide_message_seen_notice();
+send.new_message = function(token, message) {
+    var convo = chat.conversation(token);
+	convo.unread_messages_there = true;
+	chat.hide_message_seen_notice(convo.token);
     socket.emit("new_message", {
         "message": message,
-        conversation_token: chat.conversation_token,
-		chatter_token: chat.chatter_token
+        conversation_token: convo.token,
+		chatter_token: convo.chatter_token
     });
 };
 

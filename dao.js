@@ -11,6 +11,7 @@ var redis = require('then-redis'),
 	}
 
 dao.operator = function(token){
+	if(!token) return null;
 	if(token.token){
 		token = token.token;
 	}
@@ -136,6 +137,7 @@ dao.operator = function(token){
 	return self;
 };
 dao.chatter = function(token){
+	if(!token) return null;
 	if(token.token){
 		token = token.token;
 	}
