@@ -32,9 +32,9 @@ createOperator("a", "1", "Jim");
 createOperator("b", "2", "Bob");
 createOperator("c", "3", "Jill");
 env.dao.operator("abc").exists(function(exists){
-	if(exists){
+	//if(exists){
 		createOperator("operatorSecret", "abc", "Operator Guy");
-	}
+	//}
 	/*else{
 		env.dao.operator("abc").call_requests = [];
 		env.dao.operator("abc").conversations = [];
