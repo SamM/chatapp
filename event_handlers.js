@@ -644,7 +644,7 @@ module.exports = function(env){
 		get_sockets('operator', operator, function(sockets){
 			if(sockets.length){
 				chatter.get_sockets(function(ch_sockets){
-					chatter.get_conversation_token(function(coversation_token){
+					chatter.get_conversation_token(function(conversation_token){
 						sockets.forEach(function(s){
 							s.emit("chatter_disconnect", { 
 								'conversation_token': conversation_token, 
@@ -675,7 +675,7 @@ module.exports = function(env){
 		get_sockets('operator', operator, function(sockets){
 			if(sockets.length){
 				chatter.get_sockets(function(ch_sockets){
-					chatter.get_conversation_token(function(coversation_token){
+					chatter.get_conversation_token(function(conversation_token){
 						sockets.forEach(function(s){
 							s.emit("chatter_reconnect", { 
 								'conversation_token': conversation_token, 
