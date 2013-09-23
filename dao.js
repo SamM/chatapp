@@ -1,5 +1,6 @@
-var redis = require('then-redis'),
-	db = redis.createClient("redis://redistogo:d7527215d8bd631e7fbe6a8110a7a068@koi.redistogo.com:9715/"),
+// redis://nodejitsu:nodejitsudb2837567110.redis.irstack.com:f327cfe980c971946e80b8e975fbebb4@nodejitsudb2837567110.redis.irstack.com:6379
+var redis = require('redis'), 
+	db = redis.createClient(6379,"nodejitsudb2837567110.redis.irstack.com"),
 	dao = {},
 	j = "|";
 	function none(){};
@@ -9,6 +10,8 @@ var redis = require('then-redis'),
 	function split(cb){
 		return function(v,k){ (cb||none)(v==""?[]:(v=="[]"?[]:v.slice(1,-1).split(j))); };
 	}
+	db.auth("nodejitsudb2837567110.redis.irstack.com:f327cfe980c971946e80b8e975fbebb4", function(err,val){ if(err) console.log("Redis auth error:",err, val) });
+	db.on("error", function (err) { console.log("Redis error: " + err); });
 
 dao.operator = function(token){
 	if(!token) return null;
@@ -21,7 +24,7 @@ dao.operator = function(token){
 	var pre = "operator:"+token+":";
 	function g(key, cb){
 		cb = cb || none;
-		db.get(pre+key).then(function(v){
+		db.get(pre+key, function(err, v){
 			if(v=="null")
 				v = null;
 			if(v=="undefined")
@@ -41,11 +44,11 @@ dao.operator = function(token){
 			}
 		});
 	}
-	function s(key, value){
-		db.set(pre+key, value);
+	function s(key, value, cb){
+		db.set(pre+key, value, cb||none);
 	}
 	var self = {
-		create: function(secret, name){
+		create: function(secret, name, cb){
 			var operator = {};
 			operator[pre] = token;
 			operator[pre+'secret'] = secret;
@@ -54,7 +57,12 @@ dao.operator = function(token){
 			operator[pre+'sockets'] = "[]";
 			operator[pre+'call_requests'] = "[]";
 			operator[pre+'conversations'] = "[]";
-			db.mset(operator);
+			var arr = [];
+			for(var i in operator){
+				arr.push(i);
+				arr.push(operator[i]);
+			}
+			db.mset(arr, cb||none);
 			return self;
 		},
 		remove: function(cb){
@@ -66,10 +74,10 @@ dao.operator = function(token){
 				pre+'sockets',
 				pre+'call_requests',
 				pre+'conversations'];
-			db.del.apply(db,keys).then(cb||none);
+			db.del(keys,cb||none);
 			return self;
 		},
-		exists: function(cb){ db.exists(pre).then(cb); return self; },
+		exists: function(cb){ db.exists(pre,function(err, v){(cb||none)(v)}); return self; },
 				
 		get token(){ return token; },
 		
@@ -148,7 +156,7 @@ dao.chatter = function(token){
 
 	function g(key, cb){
 		cb = cb || none;
-		db.get(pre+key).then(function(v){
+		db.get(pre+key, function(err, v){
 			if(v=="null")
 				v = null;
 			if(v=="undefined")
@@ -164,11 +172,11 @@ dao.chatter = function(token){
 			cb(v);
 		});
 	}
-	function s(key, value){
-		db.set(pre+key, value);
+	function s(key, value, cb){
+		db.set(pre+key, value, cb||none);
 	}
 	var self = {
-		create: function(secret, name, ops, convo_token){
+		create: function(secret, name, ops, convo_token, cb){
 			var c = {};
 			c[pre] = token;
 			c[pre+'secret'] = secret;
@@ -180,7 +188,12 @@ dao.chatter = function(token){
 			c[pre+'call_declined'] = false;
 			c[pre+'conversation_token'] = convo_token||null;
 			c[pre+'chatting_with'] = null;
-			db.mset(c);
+			var arr = [];
+			for(var i in c){
+				arr.push(i);
+				arr.push(c[i]);
+			}
+			db.mset(arr,cb||none);
 			return self;
 		},
 		remove: function(cb){
@@ -195,10 +208,10 @@ dao.chatter = function(token){
 				pre+'call_declined',
 				pre+'conversation_token',
 				pre+'chatting_with'];
-			db.del.apply(db,keys).then(cb||none);
+			db.del.apply(db,keys,cb||none);
 			return self;
 		},
-		exists: function(cb){ db.exists(pre).then(cb); return self; },
+		exists: function(cb){ db.exists(pre,function(err, v){(cb||none)(v)}); return self; },
 				
 		get token(){ return token; },
 		

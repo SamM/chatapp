@@ -151,7 +151,7 @@ chat.show_typing_notice = function(token){
 	if(!convo.typing_notice_fading){
 		convo.typing_notice_before = convo.screen.find(".typing")[0].innerHTML;
 	}
-	convo.screen.find(".typing").html(chat.chatter_name+" is typing ...").show();
+	convo.screen.find(".typing").html(convo.chatter_name+" is typing ...").show();
 	convo.typing_notice_timer = setTimeout(function(){chat.hide_typing_notice(convo.token);}, 15000);
 }
 

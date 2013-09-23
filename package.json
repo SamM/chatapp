@@ -1,6 +1,6 @@
 {
 	"name": "WSChatServer",
-	"version": "0.2.2-2",
+	"version": "0.2.2-6",
 	"scripts": {
 		"start": "node ./server.js"
 	},
@@ -16,7 +16,7 @@
 	"analyze": false,
 	"dependencies": {
 		"socket.io": "0.9.x",
-		"then-redis": "0.3.x",
+		"redis": "0.8.x",
 		"express": "3.x"
 	},
 	"subdomain": "godchat-chat",
