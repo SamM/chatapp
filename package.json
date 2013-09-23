@@ -1,6 +1,6 @@
 {
 	"name": "WSChatServer",
-	"version": "0.2.2-6",
+	"version": "0.2.2-9",
 	"scripts": {
 		"start": "node ./server.js"
 	},
