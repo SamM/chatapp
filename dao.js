@@ -1,6 +1,7 @@
 // redis://nodejitsu:nodejitsudb2837567110.redis.irstack.com:f327cfe980c971946e80b8e975fbebb4@nodejitsudb2837567110.redis.irstack.com:6379
 var redis = require('redis'), 
 	db = redis.createClient(6379,"nodejitsudb2837567110.redis.irstack.com"),
+	uniq = Math.round(Math.random()*1000000);
 	dao = {},
 	j = "|";
 	function none(){};
@@ -21,10 +22,11 @@ dao.operator = function(token){
 	if(typeof token != "string"){
 		return null;
 	}
-	var pre = "operator:"+token+":";
+	var pre = uniq+":operator:"+token+":";
 	function g(key, cb){
 		cb = cb || none;
 		db.get(pre+key, function(err, v){
+			if(err) console.log('Get error:',pre+key,"-",err);
 			if(v=="null")
 				v = null;
 			if(v=="undefined")
@@ -152,11 +154,12 @@ dao.chatter = function(token){
 	if(typeof token != "string"){
 		return null;
 	}
-	var pre = "chatter:"+token+":";
+	var pre = uniq+"chatter:"+token+":";
 
 	function g(key, cb){
 		cb = cb || none;
 		db.get(pre+key, function(err, v){
+			if(err) console.log('Get error:',pre+key,"-",err);
 			if(v=="null")
 				v = null;
 			if(v=="undefined")
