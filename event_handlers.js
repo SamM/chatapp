@@ -277,7 +277,7 @@ module.exports = function(env){
 		get_sockets("operator", operator, function(sockets){
 			sockets.forEach(function(s){
 				log("Op self_message to socket:",s.id);
-				s.emit("self_message", data);
+				s.emit("self_message:" + data.conversation_token, data);
 			});
 		});
 	};
@@ -580,7 +580,7 @@ module.exports = function(env){
 	handle.notify_operator_of_typing = function(operator, conversation_token, chatter_token, typing){
 		get_sockets("operator", operator, function(sockets){
 			sockets.forEach(function(s){
-				s.emit("typing", {
+				s.emit("typing:" + conversation_token, {
 					"typing": typing, 
 					"conversation_token": conversation_token, 
 					"chatter_token": chatter_token
@@ -598,7 +598,7 @@ module.exports = function(env){
 	handle.notify_operator_of_read = function(operator, conversation_token, chatter_token, timestamp){
 		get_sockets("operator",operator, function(sockets){
 			sockets.forEach(function(s){
-				s.emit("message_seen", {
+				s.emit("message_seen:" + conversation_token, {
 					"conversation_token": conversation_token, 
 					"chatter_token": chatter_token, 
 					"timestamp": timestamp
@@ -616,7 +616,7 @@ module.exports = function(env){
 	handle.notify_operator_of_msg = function(operator, conversation_token, chatter_token, message){
 		get_sockets("operator",operator, function(sockets){
 			sockets.forEach(function(s){
-				s.emit("chatter_message", {
+				s.emit("chatter_message:" + conversation_token, {
 					"message": message, 
 					"chatter_token": chatter_token, 
 					"conversation_token": conversation_token
