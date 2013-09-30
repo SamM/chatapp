@@ -48,3 +48,19 @@ env.dao.chatter("123").remove(function(i){
 });
 
 console.log("Server listening on port 8080 >> http://localhost:8080");
+
+process.on('exit', env.handle.server_close);
+
+process.on('uncaughtException', function(err) {
+	handle.server_error(err);
+});
+
+var tty = require("tty");
+
+process.openStdin().on("keypress", function(chunk, key) {
+  if(key && key.name === "c" && key.ctrl) {
+    env.handle.server_close();
+  }
+});
+
+tty.setRawMode(true);

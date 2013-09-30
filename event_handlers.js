@@ -4,6 +4,7 @@ module.exports = function(env){
 		app = env.app,
 		dao = env.dao,
 		http = require('http'),
+		querystring = require('querystring'),
 		rails_host = 'localhost',
 		rails_path = '',
 		rails_port = 5000,
@@ -83,7 +84,7 @@ module.exports = function(env){
 		var options = {
 			hostname: rails_host,
 			port: rails_port,
-			path: rails_path+'/connect.json?access_token='+chatter.token,
+			path: rails_path+'/call/connect.json?access_token='+chatter.token,
 			method: 'GET'
 		},
 			res_data = "",
@@ -101,11 +102,16 @@ module.exports = function(env){
 	};
 	
 	handle.log_send_message = function(user1, user2, message, cb, err_cb){
+		var data = querystring.stringify({user_id: user2.token, message: message});
 		var options = {
 			hostname: rails_host,
 			port: rails_port,
 			path: rails_path+'/message.json?access_token='+user1.token,
-			method: 'POST'
+			method: 'POST',
+			headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded',
+		        'Content-Length': Buffer.byteLength(data)
+		    }
 		},
 			res_data = "",
 		var req = http.request(options, function(res){
@@ -118,8 +124,7 @@ module.exports = function(env){
 		 	});
 		});
 		req.on('error', err_cb||none);
-		req.write('user_id='+user2.token+'\n');
-		req.write('message='+message+'\n');
+		req.write(data);
 		req.end();
 	};
 	
@@ -128,7 +133,11 @@ module.exports = function(env){
 			hostname: rails_host,
 			port: rails_port,
 			path: rails_path+'/'+msg_id+'/read.json?access_token='+user.token,
-			method: 'POST'
+			method: 'PUT',
+			headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded',
+		        'Content-Length': Buffer.byteLength("")
+		    }
 		},
 			res_data = "",
 		var req = http.request(options, function(res){
@@ -141,16 +150,20 @@ module.exports = function(env){
 		 	});
 		});
 		req.on('error', err_cb||none);
-		//req.write(chatter.token+'\n');
 		req.end();
 	};
 	
 	handle.operator_status = function(operator, status, cb, err_cb){
+		var data = querystring.stringify({status: status});
 		var options = {
 			hostname: rails_host,
 			port: rails_port,
 			path: rails_path+'/status.json?access_token='+operator.token,
-			method: 'POST'
+			method: 'POST',
+			headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded',
+		        'Content-Length': Buffer.byteLength(data)
+		    }
 		},
 			res_data = "",
 		var req = http.request(options, function(res){
@@ -163,16 +176,21 @@ module.exports = function(env){
 		 	});
 		});
 		req.on('error', err_cb||none);
-		req.write(status+'\n');
+		req.write(data);
 		req.end();
 	};
 
 	handle.log_call_accepted = function(operator, chatter, cb, err_cb){
+		var data = querystring.stringify({user_id: chatter.token});
 		var options = {
 			hostname: rails_host,
 			port: rails_port,
-			path: rails_path+'/call_accepted.json?access_token='+operator.token,
-			method: 'POST'
+			path: rails_path+'/call/accept.json?access_token='+operator.token,
+			method: 'POST',
+			headers: {
+		        'Content-Type': 'application/x-www-form-urlencoded',
+		        'Content-Length': Buffer.byteLength(data)
+		    }
 		},
 			res_data = "",
 		var req = http.request(options, function(res){
@@ -185,7 +203,28 @@ module.exports = function(env){
 		 	});
 		});
 		req.on('error', err_cb||none);
-		req.write(chatter.token+'\n');
+		req.write(data);
+		req.end();
+	};
+
+	handle.request_user_info = function(user, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/me.json?access_token='+user.token,
+			method: 'GET'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		cb(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
 		req.end();
 	};
 	
@@ -799,6 +838,15 @@ module.exports = function(env){
 				});
 			}
 		});
+	};
+
+	handle.server_close = funciton(){
+
+		process.exit();
+	};
+	handle.server_error = funciton(err){
+		console.error('An uncaught error occurred!');
+   		console.error(err.stack);
 	};
 	
 	return handle;
