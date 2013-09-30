@@ -3,8 +3,13 @@ module.exports = function(env){
 		express = env.express,
 		app = env.app,
 		dao = env.dao,
+		http = require('http'),
+		rails_host = 'localhost',
+		rails_path = '',
+		rails_port = 5000,
 		handle = {},
-		WAITING_TIME = 10 * 1000;
+		WAITING_TIME = 10 * 1000,
+		STATUS = { OFFLINE: 0, ONLINE: 1, BUSY: 2, AWAY: 3 };
 	
 	function log(){
 		console.log.apply(console, arguments);
@@ -72,75 +77,146 @@ module.exports = function(env){
 		});
 	};
 	
-	// Rails to Node
-	
-	handle.call_received = function(req, res){
-		var body = req.body;
-		log("Call Received:\n", body);
-		res.send(200);
-		var chatter = dao.chatter(body.token);
-		
-		chatter.create(body.secret, body.name, body.operators, body.conversation_token);
-		handle.call_operators(chatter);
-	};
-	
-	handle.operator_login = function(req, res){
-		var body = req.body,
-			operator = dao.operator(body.token).create(body.secret, body.name);
-		res.send(200);
-	};
-	
-	handle.operator_logout = function(req, res){
-		var secret = req.params.secret,
-			token = req.params.token;
-		log("Operator logs in: ",token);
-		dao.operator.remove(token);
-		res.send(200);
-	};
-	
-	handle.msg_by_chatter_logged = function(){};
-	
-	handle.msg_by_operator_logged = function(){};
-	
-	handle.read_by_chatter_logged = function(){};
-		
-	handle.read_by_operator_logged = function(){};
-	
-	handle.operator_status_cb = function(){};
-	
 	// Node to Rails
 	
-	handle.log_msg_by_in = function(){};
+	handle.call_received = function(chatter, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/connect.json?access_token='+chatter.token,
+			method: 'GET'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		cb(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
+		req.end();
+	};
 	
-	handle.log_msg_by_out = function(){};
+	handle.log_send_message = function(user1, user2, message, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/message.json?access_token='+user1.token,
+			method: 'POST'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		cb(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
+		req.write('user_id='+user2.token+'\n');
+		req.write('message='+message+'\n');
+		req.end();
+	};
 	
-	handle.log_read_by_in = function(){};
+	handle.log_read_message = function(user, msg_id, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/'+msg_id+'/read.json?access_token='+user.token,
+			method: 'POST'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		(cb||none)(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
+		//req.write(chatter.token+'\n');
+		req.end();
+	};
 	
-	handle.log_read_by_out = function(){};
-	
-	handle.operator_status = function(){};
+	handle.operator_status = function(operator, status, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/status.json?access_token='+operator.token,
+			method: 'POST'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		cb(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
+		req.write(status+'\n');
+		req.end();
+	};
+
+	handle.log_call_accepted = function(operator, chatter, cb, err_cb){
+		var options = {
+			hostname: rails_host,
+			port: rails_port,
+			path: rails_path+'/call_accepted.json?access_token='+operator.token,
+			method: 'POST'
+		},
+			res_data = "",
+		var req = http.request(options, function(res){
+		 	res.setEncoding('utf8');
+			res.on('data', function (chunk) {
+		    	res_data += chunk;
+		 	});
+		 	res.on('end', function(){
+		 		cb(res, JSON.parse(res_data));
+		 	});
+		});
+		req.on('error', err_cb||none);
+		req.write(chatter.token+'\n');
+		req.end();
+	};
 	
 	// User to Node
 	
 	handle.chatter_connect = function(socket, data){
-		var token = data.token,
-			chatter = dao.chatter(token);
+		var token = data.token;
+		var chatter = dao.chatter(token);
 		
-		if(token === undefined || data.secret === undefined){
-			handle.reject_chatter_connect(socket, token === undefined ? "missing token" : "missing secret");
+		if(token === undefined){
+			handle.reject_chatter_connect(socket,"missing token");
 		}else{
 			chatter.exists(function(exists){
 				if(!exists){
-					handle.reject_chatter_connect(socket, "bad token");
-				}else{
-					chatter.get_secret(function(secret){
-						if(secret !== data.secret){
-							handle.reject_chatter_connect(socket, "bad secret");
-						}else{
-							// Connected successfully
-							handle.accept_chatter_connect(socket, chatter);
+					handle.call_received(chatter, 
+						function(res, body){
+					 		if(res.statusCode == 200){
+								chatter.create(body.name, body.operators, body.conversation_token, function(){
+									handle.accept_chatter_connect(socket, chatter);
+									handle.call_operators(chatter);
+								});
+					 		}else{
+					 			handle.reject_chatter_connect(socket,"bad token");
+					 		}
+					 	},
+						function(e) {
+							handle.reject_chatter_connect(socket,"auth request error");
 						}
-					});
+					);
+				}else{
+					handle.accept_chatter_connect(socket, chatter);
 				}
 			});
 		}
@@ -150,21 +226,27 @@ module.exports = function(env){
 		var token = data.token,
 			operator = dao.operator(token);
 		
-		if(token === undefined || data.secret === undefined){
-			handle.reject_operator_connect(socket, token === undefined ? "missing token" : "missing secret");
+		if(token === undefined){
+			handle.reject_operator_connect(socket, "missing token");
 		}else{
 			operator.exists(function(exists){
 				if(!exists){
-					handle.reject_operator_connect(socket, "bad token");
-				}else{
-					operator.get_secret(function(secret){
-						if(secret !== data.secret){
-							handle.reject_operator_connect(socket, "bad secret");
-						}else{
-							// Connected successfully
-							handle.accept_operator_connect(socket, operator);
+					handle.operator_status(operator, STATUS.ONLINE,
+						function(res, body){
+							if(res.statusCode == 200){
+								operator.create(body.name, function(){
+									handle.accept_operator_connect(socket, operator);
+								});
+					 		}else{
+					 			handle.reject_operator_connect(socket,"bad token");
+					 		}
+						},
+						function(e) {
+							handle.reject_operator_connect(socket,"auth request error");
 						}
-					});
+					);
+				}else{
+					handle.accept_operator_connect(socket, operator);
 				}
 			});
 		}
@@ -186,6 +268,19 @@ module.exports = function(env){
 						
 						handle.notify_chatter_of_operator(chatter, operator);
 						handle.notify_operator_of_chatter(operator, chatter);
+
+						handle.log_call_accepted(operator, chatter, 
+							function(res, body){
+								if(res.statusCode == 200){
+						 			
+						 		}else{
+
+						 		}
+							},
+							function(e) {
+								log('Error notifying rails of call accepted:',e);
+							}
+				);
 					}
 				});
 			}
@@ -237,6 +332,7 @@ module.exports = function(env){
 					var operator = dao.operator(chatting_with);
 					chatter.get_conversation_token(function(conversation_token){
 						handle.notify_operator_of_read(operator, conversation_token, chatter.token, (new Date()).getTime());
+						handle.log_read_message(chatter, data.message_id, none, none);
 					});
 				});
 			}
@@ -247,20 +343,27 @@ module.exports = function(env){
 		log("Operator reads message:\n\t",operator.token, socket.id);
 		var chatter = dao.chatter(data.chatter_token);
 		handle.notify_chatter_of_read(chatter, (new Date()).getTime());
+		handle.log_read_message(operator, data.message_id, none, none);
 	};
 	
 	handle.chatter_send_msg = function(socket, data, chatter){
 		log("Chatter sends message:\n\t",chatter.token, socket.id);
 		data.message = processMessage(data.message);
-		get_sockets("chatter", chatter, function(sockets){
-			sockets.forEach(function(s){s.emit("self_message", data);});
-		});
 		chatter.get_call_accepted(function(call_accepted){
 			if(call_accepted){
 				chatter.get_chatting_with(function(chatting_with){
 					var operator = dao.operator(chatting_with);
 					chatter.get_conversation_token(function(conversation_token){
-						handle.notify_operator_of_msg(operator, conversation_token, chatter.token, data.message);
+						handle.log_read_message(chatter, data.message_id, function(res, body){
+							if(res.statusCode == 200){
+								data.message_id = body.message_id;
+								get_sockets("chatter", chatter, function(sockets){
+									sockets.forEach(function(s){s.emit("self_message", data);});
+								});
+								handle.notify_operator_of_msg(operator, conversation_token, chatter.token, data.message, body.message_id);
+							}
+						}, none);
+						
 					});
 				});
 			}else{
@@ -273,13 +376,18 @@ module.exports = function(env){
 		log("Operator sends message:\n\t",operator.token, socket.id);
 		var chatter = dao.chatter(data.chatter_token);
 		data.message = processMessage(data.message);
-		handle.notify_chatter_of_msg(chatter, data.message);
-		get_sockets("operator", operator, function(sockets){
-			sockets.forEach(function(s){
-				log("Op self_message to socket:",s.id);
-				s.emit("self_message:" + data.conversation_token, data);
-			});
-		});
+		handle.log_read_message(chatter, data.message_id, function(res, body){
+			if(res.statusCode == 200){
+				data.message_id = body.message_id;
+				handle.notify_chatter_of_msg(chatter, data.message, data.message_id);
+				get_sockets("operator", operator, function(sockets){
+					sockets.forEach(function(s){
+						log("Op self_message to socket:",s.id);
+						s.emit("self_message:" + data.conversation_token, data);
+					});
+				});
+			}
+		}, none);
 	};
 	
 	handle.chatter_disconnect = function(socket, data, chatter){
@@ -306,13 +414,16 @@ module.exports = function(env){
 				});
 			}
 		});
+		handle.operator_status(operator, STATUS.OFFLINE, none, none);
 	};
 	
 	handle.operator_call_received = function(socket, chatter_token, operator){
 		log("Operator has recieved call:\n\t", operator.token, chatter_token);
 	};
 	
-	handle.operator_status = function(socket, data){};
+	handle.operator_status = function(socket, data){
+		
+	};
 	
 	// Node to user
 	

@@ -50,10 +50,9 @@ dao.operator = function(token){
 		db.set(pre+key, value, cb||none);
 	}
 	var self = {
-		create: function(secret, name, cb){
+		create: function(name, cb){
 			var operator = {};
 			operator[pre] = token;
-			operator[pre+'secret'] = secret;
 			operator[pre+'name'] = name||null;
 			operator[pre+'connected'] = false;
 			operator[pre+'sockets'] = "[]";
@@ -70,7 +69,6 @@ dao.operator = function(token){
 		remove: function(cb){
 			var keys = [
 				pre, 
-				pre+'secret',
 				pre+'name',
 				pre+'connected',
 				pre+'sockets',
@@ -82,9 +80,6 @@ dao.operator = function(token){
 		exists: function(cb){ db.exists(pre,function(err, v){(cb||none)(v)}); return self; },
 				
 		get token(){ return token; },
-		
-		get_secret: function(cb){ g('secret',cb); return self; },
-		set secret(v){ s('secret',v); },
 		
 		get_name: function(cb){ g('name',cb); return self; },
 		set name(v){ s('name',v); },
@@ -179,10 +174,9 @@ dao.chatter = function(token){
 		db.set(pre+key, value, cb||none);
 	}
 	var self = {
-		create: function(secret, name, ops, convo_token, cb){
+		create: function(name, ops, convo_token, cb){
 			var c = {};
 			c[pre] = token;
-			c[pre+'secret'] = secret;
 			c[pre+'name'] = name||"";
 			c[pre+'connected'] = false;
 			c[pre+'sockets'] = "[]";
@@ -202,7 +196,6 @@ dao.chatter = function(token){
 		remove: function(cb){
 			var keys = [
 				pre, 
-				pre+'secret',
 				pre+'name',
 				pre+'connected',
 				pre+'sockets',
@@ -217,9 +210,6 @@ dao.chatter = function(token){
 		exists: function(cb){ db.exists(pre,function(err, v){(cb||none)(v)}); return self; },
 				
 		get token(){ return token; },
-		
-		get_secret: function(cb){ g('secret',cb); return self; },
-		set secret(v){ s('secret',v); },
 		
 		get_name: function(cb){ g('name',cb); return self; },
 		set name(v){ s('name',v); },
